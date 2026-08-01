@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "@/lib/api";
 
 interface PaginatedResult<T> {
@@ -11,18 +11,20 @@ interface PaginatedResult<T> {
   totalPages: number;
 }
 
-export function usePaginatedApi<T>(endpoint: string, params: Record<string, string | number> = {}) {
+export function usePaginatedApi<T>(endpoint: string, params?: Record<string, string | number>) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
+  const paramsKey = JSON.stringify(params ?? {});
+  const stableParams = useMemo(() => params ?? {}, [paramsKey, params]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get<PaginatedResult<T>>(endpoint, {
-        params: { page, limit: 10, search, ...params },
+        params: { page, limit: 10, search, ...stableParams },
       });
       setData(res.data.data);
       setTotalPages(res.data.totalPages);
@@ -31,11 +33,33 @@ export function usePaginatedApi<T>(endpoint: string, params: Record<string, stri
     } finally {
       setLoading(false);
     }
-  }, [endpoint, page, search, params]);
+  }, [endpoint, page, search, stableParams]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let active = true;
+    const run = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get<PaginatedResult<T>>(endpoint, {
+          params: { page, limit: 10, search, ...stableParams },
+        });
+        if (!active) return;
+        setData(res.data.data);
+        setTotalPages(res.data.totalPages);
+      } catch {
+        if (!active) return;
+        setData([]);
+      } finally {
+        if (!active) return;
+        setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      active = false;
+    };
+  }, [endpoint, page, search, stableParams]);
 
   return { data, loading, page, setPage, totalPages, search, setSearch, refetch: fetchData };
 }
@@ -57,8 +81,27 @@ export function useApiData<T>(endpoint: string) {
   }, [endpoint]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let active = true;
+    const run = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get<{ data: T }>(endpoint);
+        if (!active) return;
+        setData(res.data.data);
+      } catch {
+        if (!active) return;
+        setData(null);
+      } finally {
+        if (!active) return;
+        setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      active = false;
+    };
+  }, [endpoint]);
 
   return { data, loading, refetch: fetchData };
 }

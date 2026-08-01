@@ -44,10 +44,12 @@ interface Customer { id: string; name: string }
 
 export default function SalesPage() {
   const { data, loading, page, setPage, totalPages, refetch } = usePaginatedApi<Sale>("/sales");
-  const { data: products } = usePaginatedApi<Product>("/products");
-  const { data: customers } = usePaginatedApi<Customer>("/customers");
+  const { data: products } = usePaginatedApi<Product>("/products", { limit: 100 });
+  const { data: customers } = usePaginatedApi<Customer>("/customers", { limit: 100 });
 
   const [open, setOpen] = useState(false);
+  const productList = products ?? [];
+  const customerList = customers ?? [];
   const [customerId, setCustomerId] = useState("");
   const [items, setItems] = useState<SaleItem[]>([{ productId: "", quantity: 1, unitPrice: 0 }]);
   const [payment, setPayment] = useState({ method: "CASH", amount: 0, reference: "" });
@@ -132,9 +134,13 @@ export default function SalesPage() {
               <Select value={customerId} onValueChange={setCustomerId}>
                 <SelectTrigger><SelectValue placeholder="Walk-in customer" /></SelectTrigger>
                 <SelectContent>
-                  {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
+                  {customerList.length ? (
+                    customerList.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No customers available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -151,9 +157,13 @@ export default function SalesPage() {
                 >
                   <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
                   <SelectContent>
-                    {products.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} ({p.stockQuantity})</SelectItem>
-                    ))}
+                    {productList.length ? (
+                      productList.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name} ({p.stockQuantity})</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>No products available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <Input type="number" value={item.quantity} onChange={(e) => {

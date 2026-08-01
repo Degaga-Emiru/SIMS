@@ -72,6 +72,8 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const categoryList = categories ?? [];
+  const supplierList = suppliers ?? [];
 
   function openCreate() {
     setEditing(null);
@@ -144,9 +146,6 @@ export default function ProductsPage() {
       toast.error(e instanceof Error ? e.message : "Failed to delete");
     }
   }
-
-  const categoryList = Array.isArray(categories) ? categories : (categories as unknown as { data?: Category[] })?.data ?? [];
-  const supplierList = Array.isArray(suppliers) ? suppliers : (suppliers as unknown as { data?: Supplier[] })?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -249,9 +248,13 @@ export default function ProductsPage() {
               <Select value={form.categoryId} onValueChange={(v) => setForm({ ...form, categoryId: v })}>
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
-                  {categoryList.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
+                  {categoryList.length ? (
+                    categoryList.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No categories available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -260,9 +263,13 @@ export default function ProductsPage() {
               <Select value={form.supplierId} onValueChange={(v) => setForm({ ...form, supplierId: v })}>
                 <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
                 <SelectContent>
-                  {supplierList.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
+                  {supplierList.length ? (
+                    supplierList.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No suppliers available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
