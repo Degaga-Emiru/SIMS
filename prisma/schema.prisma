@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
@@ -12,4 +6,265 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  INVENTORY_MANAGER
+  STORE_MANAGER
+  SALES_STAFF
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+enum TransactionType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RECEIVED
+  CANCELLED
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  MOBILE_MONEY
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum NotificationType {
+  LOW_STOCK
+  SUCCESS
+  WARNING
+  INFO
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          Role      @default(SALES_STAFF)
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  passwordResetTokens   PasswordResetToken[]
+  auditLogs             AuditLog[]
+  inventoryTransactions InventoryTransaction[]
+  purchaseOrders        PurchaseOrder[]
+  sales                 Sale[]
+  notifications         Notification[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model Supplier {
+  id            String          @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  contactPerson String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  products      Product[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model Product {
+  id                String        @id @default(cuid())
+  name              String
+  sku               String        @unique
+  barcode           String?       @unique
+  description       String?
+  price             Decimal       @db.Decimal(10, 2)
+  sellingPrice      Decimal       @db.Decimal(10, 2)
+  stockQuantity     Int           @default(0)
+  lowStockThreshold Int           @default(10)
+  status            ProductStatus @default(ACTIVE)
+  image             String?
+  categoryId        String
+  category          Category      @relation(fields: [categoryId], references: [id])
+  supplierId        String?
+  supplier          Supplier?     @relation(fields: [supplierId], references: [id])
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  inventoryTransactions InventoryTransaction[]
+  purchaseOrderItems    PurchaseOrderItem[]
+  saleItems             SaleItem[]
+}
+
+model InventoryTransaction {
+  id          String          @id @default(cuid())
+  type        TransactionType
+  quantity    Int
+  previousQty Int
+  newQty      Int
+  reason      String?
+  productId   String
+  product     Product         @relation(fields: [productId], references: [id])
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  createdAt   DateTime        @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  orderNumber String              @unique
+  status      PurchaseOrderStatus @default(PENDING)
+  totalAmount Decimal             @db.Decimal(10, 2)
+  notes       String?
+  supplierId  String
+  supplier    Supplier            @relation(fields: [supplierId], references: [id])
+  userId      String
+  user        User                @relation(fields: [userId], references: [id])
+  approvedAt  DateTime?
+  receivedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  items PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  quantity        Int
+  unitPrice       Decimal       @db.Decimal(10, 2)
+  totalPrice      Decimal       @db.Decimal(10, 2)
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sales     Sale[]
+}
+
+model Sale {
+  id            String     @id @default(cuid())
+  invoiceNumber String     @unique
+  status        SaleStatus @default(PENDING)
+  subtotal      Decimal    @db.Decimal(10, 2)
+  taxAmount     Decimal    @db.Decimal(10, 2) @default(0)
+  discount      Decimal    @db.Decimal(10, 2) @default(0)
+  totalAmount   Decimal    @db.Decimal(10, 2)
+  notes         String?
+  customerId    String?
+  customer      Customer?  @relation(fields: [customerId], references: [id])
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  items    SaleItem[]
+  payments Payment[]
+}
+
+model SaleItem {
+  id         String  @id @default(cuid())
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+  saleId     String
+  sale       Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  amount    Decimal       @db.Decimal(10, 2)
+  method    PaymentMethod
+  status    PaymentStatus @default(PENDING)
+  reference String?
+  saleId    String
+  sale      Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType
+  read      Boolean          @default(false)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+}
+
+model CompanySettings {
+  id          String   @id @default(cuid())
+  companyName String   @default("Smart Inventory Management System")
+  email       String?
+  phone       String?
+  address     String?
+  logo        String?
+  currency    String   @default("USD")
+  taxRate     Decimal  @db.Decimal(5, 2) @default(0)
+  theme       String   @default("light")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
