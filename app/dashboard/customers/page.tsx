@@ -8,6 +8,8 @@ import { DataTable } from "@/components/dashboard/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +17,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { usePaginatedApi } from "@/lib/hooks/use-api";
 import api from "@/lib/api";
 
@@ -24,9 +33,22 @@ interface Customer {
   email: string | null;
   phone: string | null;
   address: string | null;
+  city: string | null;
+  country: string | null;
+  notes: string | null;
+  status: string;
 }
 
-const emptyForm = { name: "", email: "", phone: "", address: "" };
+const emptyForm = {
+  name: "",
+  email: "",
+  phone: "",
+  address: "",
+  city: "",
+  country: "",
+  notes: "",
+  status: "ACTIVE" as "ACTIVE" | "INACTIVE",
+};
 
 export default function CustomersPage() {
   const { data, loading, page, setPage, totalPages, search, setSearch, refetch } =
@@ -49,6 +71,10 @@ export default function CustomersPage() {
       email: c.email ?? "",
       phone: c.phone ?? "",
       address: c.address ?? "",
+      city: c.city ?? "",
+      country: c.country ?? "",
+      notes: c.notes ?? "",
+      status: (c.status as "ACTIVE" | "INACTIVE") ?? "ACTIVE",
     });
     setOpen(true);
   }
@@ -108,9 +134,15 @@ export default function CustomersPage() {
       <DataTable
         columns={[
           { key: "name", header: "Name" },
-          { key: "email", header: "Email", render: (r) => r.email ?? "—" },
           { key: "phone", header: "Phone", render: (r) => r.phone ?? "—" },
-          { key: "address", header: "Address", render: (r) => r.address ?? "—" },
+          { key: "email", header: "Email", render: (r) => r.email ?? "—" },
+          { key: "city", header: "City", render: (r) => r.city ?? "—" },
+          { key: "country", header: "Country", render: (r) => r.country ?? "—" },
+          {
+            key: "status",
+            header: "Status",
+            render: (r) => <Badge variant={r.status === "ACTIVE" ? "success" : "secondary"}>{r.status}</Badge>,
+          },
           {
             key: "actions",
             header: "Actions",
@@ -134,20 +166,38 @@ export default function CustomersPage() {
       />
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Customer" : "Add Customer"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
-            {(["name", "email", "phone"] as const).map((field) => (
-              <div key={field} className="space-y-2">
-                <Label className="capitalize">{field}</Label>
-                <Input value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} />
-              </div>
-            ))}
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Full Name</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
             <div className="space-y-2 sm:col-span-2">
               <Label>Address</Label>
               <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>City</Label>
+              <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Country</Label>
+              <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Notes (Optional)</Label>
+              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
             </div>
           </div>
           <DialogFooter>

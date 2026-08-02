@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Plus, Pencil, Trash2, Upload, Eye } from "lucide-react";
 import toast from "react-hot-toast";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { DataTable } from "@/components/dashboard/data-table";
@@ -24,8 +25,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usePaginatedApi, useApiData } from "@/lib/hooks/use-api";
-import api from "@/lib/api";
 import { formatCurrency, generateSKU } from "@/lib/utils";
+import { canWriteProducts } from "@/lib/permissions";
+import type { Role } from "@/app/generated/prisma";
+import api from "@/lib/api";
 
 interface Product {
   id: string;
@@ -64,6 +67,8 @@ const emptyForm = {
 };
 
 export default function ProductsPage() {
+  const { data: session } = useSession();
+  const canWrite = canWriteProducts((session?.user?.role ?? "SALES_MANAGER") as Role);
   const { data, loading, page, setPage, totalPages, search, setSearch, refetch } =
     usePaginatedApi<Product>("/products");
   const { data: categories } = useApiData<Category[]>("/categories?limit=100");
@@ -151,11 +156,13 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Products"
-        description="Manage your product catalog"
+        description={canWrite ? "Manage your product catalog" : "View available products and stock levels"}
         action={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> Add Product
-          </Button>
+          canWrite ? (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" /> Add Product
+            </Button>
+          ) : undefined
         }
       />
 
@@ -179,7 +186,15 @@ export default function ProductsPage() {
             header: "Price",
             render: (r) => formatCurrency(Number(r.sellingPrice)),
           },
-          { key: "stockQuantity", header: "Stock" },
+          {
+            key: "stockQuantity",
+            header: "Stock",
+            render: (r) => (
+              <span className={r.stockQuantity <= r.lowStockThreshold ? "text-yellow-600 font-medium" : ""}>
+                {r.stockQuantity}
+              </span>
+            ),
+          },
           {
             key: "status",
             header: "Status",
@@ -187,20 +202,30 @@ export default function ProductsPage() {
               <Badge variant={r.status === "ACTIVE" ? "success" : "secondary"}>{r.status}</Badge>
             ),
           },
-          {
-            key: "actions",
-            header: "Actions",
-            render: (r) => (
-              <div className="flex gap-2">
-                <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            ),
-          },
+          ...(canWrite
+            ? [{
+                key: "actions",
+                header: "Actions",
+                render: (r: Product) => (
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ),
+              }]
+            : [{
+                key: "view",
+                header: "View",
+                render: (r: Product) => (
+                  <Badge variant={r.stockQuantity > 0 ? "success" : "warning"}>
+                    {r.stockQuantity > r.lowStockThreshold ? "In Stock" : r.stockQuantity > 0 ? "Low Stock" : "Out of Stock"}
+                  </Badge>
+                ),
+              }]),
         ]}
         data={data}
         loading={loading}

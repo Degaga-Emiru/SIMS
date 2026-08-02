@@ -16,6 +16,7 @@ import {
   Settings,
   ClipboardList,
   ScrollText,
+  UserCog,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ const ICONS = {
   "purchase-orders": ClipboardList,
   sales: ShoppingCart,
   customers: Users,
+  employees: UserCog,
   reports: FileText,
   notifications: Bell,
   "audit-logs": ScrollText,
@@ -46,7 +48,7 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const role = (session?.user?.role ?? "SALES_STAFF") as Role;
+  const role = (session?.user?.role ?? "SALES_MANAGER") as Role;
 
   const visibleItems = NAV_ITEMS.filter((item) => canAccessNav(role, item.permission));
 

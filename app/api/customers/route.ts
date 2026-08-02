@@ -37,7 +37,11 @@ export async function POST(request: NextRequest) {
   if (validationError) return validationError;
 
   const customer = await prisma.customer.create({
-    data: { ...data!, email: data!.email || null },
+    data: {
+      ...data!,
+      email: data!.email || null,
+      createdById: session!.user.id,
+    },
   });
   await createAuditLog(session!.user.id, "CREATE", "Customer", customer.id);
   return successResponse(customer);

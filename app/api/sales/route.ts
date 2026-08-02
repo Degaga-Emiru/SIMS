@@ -6,13 +6,15 @@ import { saleSchema } from "@/lib/validations";
 import { generateOrderNumber } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
-  const { error } = await requireAuth();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
   const { page, limit, skip } = parsePagination(request.nextUrl.searchParams);
+  const where = session!.user.role === "SALES_MANAGER" ? { userId: session!.user.id } : {};
 
   const [data, total] = await Promise.all([
     prisma.sale.findMany({
+      where,
       skip,
       take: limit,
       orderBy: { createdAt: "desc" },
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest) {
         user: { select: { name: true } },
       },
     }),
-    prisma.sale.count(),
+    prisma.sale.count({ where }),
   ]);
 
   return paginatedResponse(data, total, page, limit);

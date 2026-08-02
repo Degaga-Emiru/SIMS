@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { requireAuth, createAuditLog } from "@/lib/api-auth";
 import { parsePagination, paginatedResponse, validateBody, successResponse, errorResponse } from "@/lib/api-utils";
 import { inventoryTransactionSchema } from "@/lib/validations";
+import { canWriteInventory } from "@/lib/permissions";
 
 export async function GET(request: NextRequest) {
   const { error } = await requireAuth();
@@ -29,6 +30,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const { session, error } = await requireAuth();
   if (error) return error;
+  if (!canWriteInventory(session!.user.role)) {
+    return errorResponse("You do not have permission to modify inventory", 403);
+  }
 
   const { data, error: validationError } = await validateBody(request, inventoryTransactionSchema);
   if (validationError) return validationError;

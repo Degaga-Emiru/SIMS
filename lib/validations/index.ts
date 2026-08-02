@@ -10,7 +10,7 @@ export const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
-  role: z.enum(["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_STAFF"]).optional(),
+  role: z.enum(["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"]).optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -69,6 +69,10 @@ export const customerSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
+  city: z.string().optional(),
+  country: z.string().optional(),
+  notes: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
 });
 
 export const purchaseOrderSchema = z.object({
@@ -104,13 +108,52 @@ export const settingsSchema = z.object({
   address: z.string().optional(),
   logo: z.string().optional(),
   currency: z.string().min(1),
+  currencySymbol: z.string().min(1),
+  currencyCode: z.string().min(1),
+  decimalPlaces: z.coerce.number().int().min(0).max(4),
   taxRate: z.coerce.number().min(0).max(100),
+  taxName: z.string().min(1),
+  taxNumber: z.string().optional(),
+  fiscalYearStart: z.string().min(1),
   theme: z.enum(["light", "dark", "system"]).default("light"),
+});
+
+export const employeeCreateSchema = z.object({
+  name: z.string().min(2, "Full name is required"),
+  email: z.string().email("Invalid email"),
+  phone: z.string().optional(),
+  role: z.enum(["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"]),
+  department: z.string().optional(),
+  position: z.string().optional(),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
+  image: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
+}).refine((d) => d.password === d.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export const employeeUpdateSchema = z.object({
+  name: z.string().min(2).optional(),
+  phone: z.string().optional(),
+  role: z.enum(["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"]).optional(),
+  department: z.string().optional(),
+  position: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  image: z.string().optional(),
+});
+
+export const employeeResetPasswordSchema = z.object({
+  password: z.string().min(6).optional(),
+  generateTemporary: z.boolean().optional(),
+  forcePasswordChange: z.boolean().default(true),
 });
 
 export const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
+  image: z.string().optional(),
   currentPassword: z.string().optional(),
   newPassword: z.string().min(6).optional(),
   confirmPassword: z.string().optional(),

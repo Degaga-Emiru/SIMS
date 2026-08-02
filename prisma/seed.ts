@@ -1,19 +1,40 @@
 import bcrypt from "bcrypt";
 import { PrismaClient } from "../app/generated/prisma";
+import { generateEmployeeId } from "../lib/utils";
 
 const prisma = new PrismaClient();
 
 async function main() {
   const password = await bcrypt.hash("admin123", 12);
+  const salesPassword = await bcrypt.hash("sales123", 12);
 
   await prisma.user.upsert({
     where: { email: "admin@sims.io" },
-    update: {},
+    update: { employeeId: "EMP-100001", role: "SUPER_ADMIN", status: "ACTIVE" },
     create: {
+      employeeId: "EMP-100001",
       name: "Super Admin",
       email: "admin@sims.io",
       password,
       role: "SUPER_ADMIN",
+      department: "Administration",
+      position: "System Administrator",
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "sales@sims.io" },
+    update: { employeeId: "EMP-100002", role: "SALES_MANAGER", status: "ACTIVE" },
+    create: {
+      employeeId: "EMP-100002",
+      name: "Sales Manager Demo",
+      email: "sales@sims.io",
+      password: salesPassword,
+      role: "SALES_MANAGER",
+      department: "Sales",
+      position: "Sales Manager",
+      status: "ACTIVE",
     },
   });
 
@@ -24,7 +45,11 @@ async function main() {
         companyName: "Smart Inventory Management System",
         email: "admin@sims.io",
         currency: "USD",
+        currencySymbol: "$",
+        currencyCode: "USD",
         taxRate: 10,
+        taxName: "VAT",
+        fiscalYearStart: "01-01",
       },
     });
   }
@@ -68,7 +93,9 @@ async function main() {
     },
   });
 
-  console.log("Seed completed. Admin login: admin@sims.io / admin123");
+  console.log("Seed completed.");
+  console.log("Super Admin: admin@sims.io / admin123");
+  console.log("Sales Manager: sales@sims.io / sales123");
 }
 
 main()

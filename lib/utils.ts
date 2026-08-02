@@ -33,3 +33,15 @@ export function generateOrderNumber(prefix: string) {
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   return `${prefix}-${dateStr}-${random}`;
 }
+
+export function generateEmployeeId() {
+  const num = Math.floor(100000 + Math.random() * 900000);
+  return `EMP-${num}`;
+}
+
+export function generateTemporaryPassword() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
+  let pass = "";
+  for (let i = 0; i < 12; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  return pass;
+}

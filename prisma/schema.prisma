@@ -12,13 +12,23 @@ enum Role {
   SUPER_ADMIN
   INVENTORY_MANAGER
   STORE_MANAGER
-  SALES_STAFF
+  SALES_MANAGER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum ProductStatus {
   ACTIVE
   INACTIVE
   DISCONTINUED
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum TransactionType {
@@ -64,15 +74,22 @@ enum NotificationType {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  password      String
-  role          Role      @default(SALES_STAFF)
-  image         String?
-  emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                  String     @id @default(cuid())
+  employeeId          String     @unique
+  name                String
+  email               String     @unique
+  phone               String?
+  password            String
+  role                Role       @default(SALES_MANAGER)
+  department          String?
+  position            String?
+  status              UserStatus @default(ACTIVE)
+  image               String?
+  forcePasswordChange Boolean    @default(false)
+  lastLogin           DateTime?
+  emailVerified       DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
   passwordResetTokens   PasswordResetToken[]
   auditLogs             AuditLog[]
@@ -80,6 +97,7 @@ model User {
   purchaseOrders        PurchaseOrder[]
   sales                 Sale[]
   notifications         Notification[]
+  customersCreated      Customer[]             @relation("CustomerCreatedBy")
 }
 
 model PasswordResetToken {
@@ -101,15 +119,15 @@ model Category {
 }
 
 model Supplier {
-  id            String          @id @default(cuid())
-  name          String
-  email         String?
-  phone         String?
-  address       String?
-  contactPerson String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  products      Product[]
+  id             String          @id @default(cuid())
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  contactPerson  String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  products       Product[]
   purchaseOrders PurchaseOrder[]
 }
 
@@ -192,14 +210,20 @@ model PurchaseOrderItem {
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  sales     Sale[]
+  id          String         @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  country     String?
+  notes       String?
+  status      CustomerStatus @default(ACTIVE)
+  createdById String?
+  createdBy   User?          @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  sales       Sale[]
 }
 
 model Sale {
@@ -256,15 +280,21 @@ model Notification {
 }
 
 model CompanySettings {
-  id          String   @id @default(cuid())
-  companyName String   @default("Smart Inventory Management System")
-  email       String?
-  phone       String?
-  address     String?
-  logo        String?
-  currency    String   @default("USD")
-  taxRate     Decimal  @db.Decimal(5, 2) @default(0)
-  theme       String   @default("light")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  companyName     String   @default("Smart Inventory Management System")
+  email           String?
+  phone           String?
+  address         String?
+  logo            String?
+  currency        String   @default("USD")
+  currencySymbol  String   @default("$")
+  currencyCode    String   @default("USD")
+  decimalPlaces   Int      @default(2)
+  taxRate         Decimal  @db.Decimal(5, 2) @default(0)
+  taxName         String   @default("VAT")
+  taxNumber       String?
+  fiscalYearStart String   @default("01-01")
+  theme           String   @default("light")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

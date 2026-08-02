@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, createAuditLog } from "@/lib/api-auth";
 import { parsePagination, paginatedResponse, validateBody, successResponse, errorResponse } from "@/lib/api-utils";
+import { canWriteProducts } from "@/lib/permissions";
 import { productSchema } from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
@@ -41,6 +42,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const { session, error } = await requireAuth();
   if (error) return error;
+  if (!canWriteProducts(session!.user.role)) {
+    return errorResponse("You do not have permission to create products", 403);
+  }
 
   const { data, error: validationError } = await validateBody(request, productSchema);
   if (validationError) return validationError;

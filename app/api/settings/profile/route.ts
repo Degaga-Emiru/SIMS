@@ -11,7 +11,20 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session!.user.id },
-    select: { id: true, name: true, email: true, role: true, image: true, createdAt: true },
+    select: {
+      id: true,
+      employeeId: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      department: true,
+      position: true,
+      image: true,
+      status: true,
+      lastLogin: true,
+      createdAt: true,
+    },
   });
 
   return successResponse(user);
@@ -24,7 +37,12 @@ export async function PUT(request: NextRequest) {
   const { data, error: validationError } = await validateBody(request, profileSchema);
   if (validationError) return validationError;
 
-  const updateData: Record<string, string> = { name: data!.name, email: data!.email };
+  const updateData: Record<string, unknown> = {
+    name: data!.name,
+    phone: data!.phone || null,
+    image: data!.image || null,
+    forcePasswordChange: false,
+  };
 
   if (data!.newPassword) {
     if (!data!.currentPassword) {
@@ -36,14 +54,23 @@ export async function PUT(request: NextRequest) {
     updateData.password = await bcrypt.hash(data!.newPassword, 12);
   }
 
-  try {
-    const user = await prisma.user.update({
-      where: { id: session!.user.id },
-      data: updateData,
-      select: { id: true, name: true, email: true, role: true },
-    });
-    return successResponse(user);
-  } catch {
-    return errorResponse("Email already in use", 400);
-  }
+  const user = await prisma.user.update({
+    where: { id: session!.user.id },
+    data: updateData,
+    select: {
+      id: true,
+      employeeId: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      department: true,
+      position: true,
+      image: true,
+      lastLogin: true,
+      createdAt: true,
+    },
+  });
+
+  return successResponse(user, "Profile updated successfully");
 }

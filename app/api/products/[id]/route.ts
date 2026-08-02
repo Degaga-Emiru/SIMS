@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, createAuditLog } from "@/lib/api-auth";
 import { validateBody, successResponse, errorResponse } from "@/lib/api-utils";
+import { canWriteProducts } from "@/lib/permissions";
 import { productSchema } from "@/lib/validations";
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +21,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { session, error } = await requireAuth();
   if (error) return error;
+  if (!canWriteProducts(session!.user.role)) {
+    return errorResponse("You do not have permission to edit products", 403);
+  }
 
   const { data, error: validationError } = await validateBody(request, productSchema);
   if (validationError) return validationError;
@@ -45,6 +49,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { session, error } = await requireAuth();
   if (error) return error;
+  if (!canWriteProducts(session!.user.role)) {
+    return errorResponse("You do not have permission to delete products", 403);
+  }
 
   const { id } = await params;
   try {

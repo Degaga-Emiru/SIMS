@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { AlertTriangle, ArrowDown, ArrowUp, Settings2 } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -21,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { usePaginatedApi, useApiData } from "@/lib/hooks/use-api";
 import api from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { canWriteInventory } from "@/lib/permissions";
+import type { Role } from "@/app/generated/prisma";
 
 interface Transaction {
   id: string;
@@ -43,6 +46,8 @@ interface Product {
 }
 
 export default function InventoryPage() {
+  const { data: session } = useSession();
+  const canWrite = canWriteInventory((session?.user?.role ?? "SALES_MANAGER") as Role);
   const { data: history, loading, page, setPage, totalPages, refetch } =
     usePaginatedApi<Transaction>("/inventory");
   const { data: lowStock, refetch: refetchLowStock } = useApiData<Product[]>("/inventory/low-stock");
@@ -77,9 +82,13 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Inventory" description="Stock in, stock out, adjustments, and history" />
+      <PageHeader
+        title="Inventory"
+        description={canWrite ? "Stock in, stock out, adjustments, and history" : "View available stock levels for selling"}
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
+        {canWrite ? (
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-base">Update Stock</CardTitle>
@@ -122,6 +131,23 @@ export default function InventoryPage() {
             </form>
           </CardContent>
         </Card>
+        ) : (
+        <Card className="lg:col-span-1">
+          <CardHeader><CardTitle className="text-base">Available Stock</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {products.map((p) => (
+                <div key={p.id} className="flex justify-between rounded-lg border p-3 text-sm">
+                  <span className="font-medium truncate mr-2">{p.name}</span>
+                  <Badge variant={p.stockQuantity > p.lowStockThreshold ? "success" : "warning"}>
+                    {p.stockQuantity} units
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        )}
 
         <Card className="lg:col-span-2">
           <CardHeader>

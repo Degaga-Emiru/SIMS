@@ -4,20 +4,27 @@ import { requireAuth } from "@/lib/api-auth";
 import { successResponse, errorResponse } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
-  const { error } = await requireAuth();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
   const from = request.nextUrl.searchParams.get("from");
   const to = request.nextUrl.searchParams.get("to");
+  const scope = request.nextUrl.searchParams.get("scope");
 
   const dateFilter: Record<string, Date> = {};
   if (from) dateFilter.gte = new Date(from);
   if (to) dateFilter.lte = new Date(to);
 
+  const userFilter =
+    session!.user.role === "SALES_MANAGER" || scope === "own"
+      ? { userId: session!.user.id }
+      : {};
+
   try {
     const sales = await prisma.sale.findMany({
       where: {
         status: "COMPLETED",
+        ...userFilter,
         ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
       },
       include: { customer: true, items: { include: { product: true } } },

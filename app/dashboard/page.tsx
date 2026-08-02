@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import {
   Package,
   Tags,
@@ -25,10 +26,12 @@ import {
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { DashboardLoading } from "@/components/dashboard/loading";
+import { SalesManagerDashboard } from "@/components/dashboard/sales-manager-dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useApiData } from "@/lib/hooks/use-api";
 import type { DashboardStats } from "@/types";
+import type { Role } from "@/app/generated/prisma";
 
 interface ChartData {
   salesByMonth: { name: string; value: number }[];
@@ -46,7 +49,7 @@ interface Activity {
 
 const COLORS = ["#16a34a", "#22c55e", "#4ade80", "#86efac", "#bbf7d0", "#15803d"];
 
-export default function DashboardPage() {
+function AdminDashboard() {
   const { data: stats, loading: statsLoading } = useApiData<DashboardStats>("/dashboard/stats");
   const { data: charts, loading: chartsLoading } = useApiData<ChartData>("/dashboard/charts");
   const { data: activities, loading: activitiesLoading } = useApiData<Activity[]>("/dashboard/activities");
@@ -69,9 +72,7 @@ export default function DashboardPage() {
       {!chartsLoading && charts && (
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Sales by Month</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base">Sales by Month</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={charts.salesByMonth}>
@@ -86,21 +87,11 @@ export default function DashboardPage() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Products by Category</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base">Products by Category</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie
-                    data={charts.productsByCategory}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
-                  >
+                  <Pie data={charts.productsByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                     {charts.productsByCategory.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
@@ -112,9 +103,7 @@ export default function DashboardPage() {
           </Card>
 
           <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base">Stock Analytics</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base">Stock Analytics</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={charts.stockAnalytics}>
@@ -132,9 +121,7 @@ export default function DashboardPage() {
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Recent Activities</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-base">Recent Activities</CardTitle></CardHeader>
         <CardContent>
           {activitiesLoading ? (
             <p className="text-sm text-muted-foreground">Loading...</p>
@@ -145,9 +132,7 @@ export default function DashboardPage() {
               {activities.map((a) => (
                 <div key={a.id} className="flex items-center justify-between border-b pb-3 last:border-0">
                   <div>
-                    <p className="text-sm font-medium">
-                      {a.action} — {a.entity}
-                    </p>
+                    <p className="text-sm font-medium">{a.action} — {a.entity}</p>
                     <p className="text-xs text-muted-foreground">by {a.user.name}</p>
                   </div>
                   <span className="text-xs text-muted-foreground">{formatDate(a.createdAt)}</span>
@@ -159,4 +144,15 @@ export default function DashboardPage() {
       </Card>
     </div>
   );
+}
+
+export default function DashboardPage() {
+  const { data: session } = useSession();
+  const role = session?.user?.role as Role | undefined;
+
+  if (role === "SALES_MANAGER") {
+    return <SalesManagerDashboard />;
+  }
+
+  return <AdminDashboard />;
 }
