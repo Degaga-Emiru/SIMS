@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardLoading } from "@/components/dashboard/loading";
 import { ROLE_LABELS } from "@/types";
-import type { Role } from "@/app/generated/prisma";
+import type { Role } from "@/app/generated/prisma/enums";
 import { formatDate } from "@/lib/utils";
 import api from "@/lib/api";
 

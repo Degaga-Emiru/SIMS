@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useApiData } from "@/lib/hooks/use-api";
 import api from "@/lib/api";
 import { formatDate } from "@/lib/utils";
@@ -29,6 +31,7 @@ const typeVariant = (type: string) => {
 export default function NotificationsPage() {
   const { data, loading, refetch } = useApiData<Notification[]>("/notifications");
   const notifications = data ?? [];
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
 
   async function markAllRead() {
     try {
@@ -37,6 +40,19 @@ export default function NotificationsPage() {
       refetch();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update");
+    }
+  }
+
+  async function handleOpenNotification(notification: Notification) {
+    setSelectedNotification(notification);
+
+    if (!notification.read) {
+      try {
+        await api.put("/notifications", { ids: [notification.id] });
+        refetch();
+      } catch {
+        // ignore and still open the details
+      }
     }
   }
 
@@ -64,7 +80,11 @@ export default function NotificationsPage() {
       ) : (
         <div className="space-y-3">
           {notifications.map((n) => (
-            <Card key={n.id} className={n.read ? "opacity-60" : ""}>
+            <Card
+              key={n.id}
+              className={`cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/50 ${n.read ? "opacity-60" : ""}`}
+              onClick={() => handleOpenNotification(n)}
+            >
               <CardContent className="flex items-start justify-between p-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -74,11 +94,44 @@ export default function NotificationsPage() {
                   <p className="text-sm text-muted-foreground mt-1">{n.message}</p>
                   <p className="text-xs text-muted-foreground mt-2">{formatDate(n.createdAt)}</p>
                 </div>
+                <p className="text-sm text-primary">View details</p>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <Dialog open={!!selectedNotification} onOpenChange={(open) => !open && setSelectedNotification(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedNotification?.title ?? "Notification details"}</DialogTitle>
+          </DialogHeader>
+          {selectedNotification && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={typeVariant(selectedNotification.type)}>
+                  {selectedNotification.type.replace("_", " ")}
+                </Badge>
+                <Badge variant={selectedNotification.read ? "secondary" : "default"}>
+                  {selectedNotification.read ? "Read" : "Unread"}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{selectedNotification.message}</p>
+              <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+                <p className="font-medium">Additional details</p>
+                <p className="mt-1 text-muted-foreground">
+                  {selectedNotification.type === "LOW_STOCK"
+                    ? "This stock alert highlights a product that needs attention. Review the inventory record and restock if needed."
+                    : "This notification contains the latest update related to your account and workflow."}
+                </p>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Received on {formatDate(selectedNotification.createdAt)}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

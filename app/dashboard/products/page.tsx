@@ -27,7 +27,7 @@ import {
 import { usePaginatedApi, useApiData } from "@/lib/hooks/use-api";
 import { formatCurrency, generateSKU } from "@/lib/utils";
 import { canWriteProducts } from "@/lib/permissions";
-import type { Role } from "@/app/generated/prisma";
+import type { Role } from "@/app/generated/prisma/enums";
 import api from "@/lib/api";
 
 interface Product {

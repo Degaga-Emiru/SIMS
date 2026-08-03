@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ROLE_LABELS } from "@/types";
-import type { Role } from "@/app/generated/prisma";
+import type { Role } from "@/app/generated/prisma/enums";
 import { formatDate } from "@/lib/utils";
 import api from "@/lib/api";
 

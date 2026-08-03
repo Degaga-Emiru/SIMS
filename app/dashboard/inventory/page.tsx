@@ -23,7 +23,7 @@ import { usePaginatedApi, useApiData } from "@/lib/hooks/use-api";
 import api from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { canWriteInventory } from "@/lib/permissions";
-import type { Role } from "@/app/generated/prisma";
+import type { Role } from "@/app/generated/prisma/enums";
 
 interface Transaction {
   id: string;

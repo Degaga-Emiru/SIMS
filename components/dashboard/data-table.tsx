@@ -28,6 +28,7 @@ interface DataTableProps<T> {
   totalPages?: number;
   onPageChange?: (page: number) => void;
   emptyMessage?: string;
+  onRowClick?: (item: T) => void;
 }
 
 export function DataTable<T extends { id: string }>({
@@ -38,6 +39,7 @@ export function DataTable<T extends { id: string }>({
   totalPages = 1,
   onPageChange,
   emptyMessage = "No data found",
+  onRowClick,
 }: DataTableProps<T>) {
   if (loading) {
     return (
@@ -68,7 +70,11 @@ export function DataTable<T extends { id: string }>({
           </TableHeader>
           <TableBody>
             {data.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow
+                key={item.id}
+                onClick={() => onRowClick?.(item)}
+                className={onRowClick ? "cursor-pointer hover:bg-muted/50" : undefined}
+              >
                 {columns.map((col) => (
                   <TableCell key={col.key} className={col.className}>
                     {col.render

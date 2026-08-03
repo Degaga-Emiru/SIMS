@@ -44,7 +44,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePaginatedApi } from "@/lib/hooks/use-api";
 import { ROLE_LABELS } from "@/types";
 import type { EmployeeStats } from "@/types";
-import type { Role } from "@/app/generated/prisma";
+import type { Role } from "@/app/generated/prisma/enums";
 import { formatDate } from "@/lib/utils";
 import api from "@/lib/api";
 

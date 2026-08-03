@@ -1,4 +1,4 @@
-import { Role, ProductStatus, PurchaseOrderStatus, SaleStatus, TransactionType, NotificationType, UserStatus, CustomerStatus } from "@/app/generated/prisma";
+import type { Role, ProductStatus, PurchaseOrderStatus, SaleStatus, TransactionType, NotificationType, UserStatus, CustomerStatus } from "@/app/generated/prisma/enums";
 
 export type { Role, ProductStatus, PurchaseOrderStatus, SaleStatus, TransactionType, NotificationType, UserStatus, CustomerStatus };
 

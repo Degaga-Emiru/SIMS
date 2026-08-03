@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Check, X, PackageCheck, FileText } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -43,6 +44,7 @@ interface Supplier { id: string; name: string }
 interface Product { id: string; name: string; price: string }
 
 export default function PurchaseOrdersPage() {
+  const router = useRouter();
   const { data, loading, page, setPage, totalPages, refetch } =
     usePaginatedApi<PurchaseOrder>("/purchase-orders");
   const { data: suppliersRaw } = usePaginatedApi<Supplier>("/suppliers");
@@ -118,23 +120,23 @@ export default function PurchaseOrdersPage() {
             header: "Actions",
             render: (r) => (
               <div className="flex gap-1">
-                <Button size="sm" variant="ghost" asChild>
+                <Button size="sm" variant="outline" asChild onClick={(e) => e.stopPropagation()}>
                   <Link href={`/dashboard/purchase-orders/${r.id}`}>
-                    <FileText className="h-3 w-3" />
+                    <FileText className="h-3 w-3 mr-1" /> View
                   </Link>
                 </Button>
                 {r.status === "PENDING" && (
                   <>
-                    <Button size="sm" variant="outline" onClick={() => handleAction(r.id, "approve")}>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleAction(r.id, "approve"); }}>
                       <Check className="h-3 w-3" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleAction(r.id, "reject")}>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleAction(r.id, "reject"); }}>
                       <X className="h-3 w-3" />
                     </Button>
                   </>
                 )}
                 {r.status === "APPROVED" && (
-                  <Button size="sm" onClick={() => handleAction(r.id, "receive")}>
+                  <Button size="sm" onClick={(e) => { e.stopPropagation(); handleAction(r.id, "receive"); }}>
                     <PackageCheck className="h-3 w-3 mr-1" /> Receive
                   </Button>
                 )}
@@ -147,6 +149,7 @@ export default function PurchaseOrdersPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        onRowClick={(row) => router.push(`/dashboard/purchase-orders/${row.id}`)}
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

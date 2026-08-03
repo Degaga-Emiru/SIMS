@@ -20,6 +20,7 @@ interface PODetail {
   createdAt: string;
   notes: string | null;
   supplier: { name: string; email: string | null; phone: string | null };
+  user: { name: string | null } | null;
   items: { quantity: number; unitPrice: string; totalPrice: string; product: { name: string } }[];
 }
 
@@ -89,11 +90,18 @@ export default function PurchaseOrderDetailPage() {
 
           <Separator className="my-6" />
 
-          <div className="mb-6">
-            <p className="text-xs font-medium text-muted-foreground uppercase">Supplier</p>
-            <p className="font-medium">{order.supplier.name}</p>
-            {order.supplier.email && <p className="text-sm text-muted-foreground">{order.supplier.email}</p>}
-            {order.supplier.phone && <p className="text-sm text-muted-foreground">{order.supplier.phone}</p>}
+          <div className="mb-6 grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Supplier</p>
+              <p className="font-medium">{order.supplier.name}</p>
+              {order.supplier.email && <p className="text-sm text-muted-foreground">{order.supplier.email}</p>}
+              {order.supplier.phone && <p className="text-sm text-muted-foreground">{order.supplier.phone}</p>}
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase">Requested By</p>
+              <p className="font-medium">{order.user?.name ?? "System"}</p>
+              <p className="text-sm text-muted-foreground">This order was created by the inventory manager who submitted it for approval.</p>
+            </div>
           </div>
 
           <table className="w-full text-sm">

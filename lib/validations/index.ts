@@ -164,6 +164,8 @@ export const profileSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ProductInput = z.infer<typeof productSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
 export type SupplierInput = z.infer<typeof supplierSchema>;

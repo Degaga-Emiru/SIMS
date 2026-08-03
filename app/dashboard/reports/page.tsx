@@ -6,11 +6,12 @@ import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/dashboard/data-table";
 import { exportToCSV, exportToExcel, exportToPDF } from "@/lib/export";
 import api from "@/lib/api";
-import type { Role } from "@/app/generated/prisma";
+import type { Role } from "@/app/generated/prisma/enums";
 
 type ReportRow = Record<string, unknown>;
 
@@ -23,6 +24,7 @@ export default function ReportsPage() {
   const [data, setData] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [columns, setColumns] = useState<{ key: string; header: string }[]>([]);
+  const [selectedReport, setSelectedReport] = useState<ReportRow | null>(null);
 
   async function loadReport(type: string) {
     setLoading(true);
@@ -101,9 +103,30 @@ export default function ReportsPage() {
             data={data.map((row, i) => ({ ...row, id: String(i) }))}
             loading={loading}
             emptyMessage="No report data available"
+            onRowClick={(row) => setSelectedReport(row)}
           />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Report Details</DialogTitle>
+          </DialogHeader>
+          {selectedReport && (
+            <div className="space-y-3">
+              {Object.entries(selectedReport)
+                .filter(([key]) => key !== "id")
+                .map(([key, value]) => (
+                  <div key={key} className="rounded-lg border p-3">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">{key}</p>
+                    <p className="mt-1 text-sm">{value == null ? "—" : String(value)}</p>
+                  </div>
+                ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

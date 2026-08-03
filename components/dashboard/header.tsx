@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Bell, Menu, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -15,6 +16,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ROLE_LABELS } from "@/types";
 import Link from "next/link";
+import { useApiData } from "@/lib/hooks/use-api";
+
+interface NotificationSummary {
+  id: string;
+  read: boolean;
+}
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -23,6 +30,7 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+  const { data: notifications } = useApiData<NotificationSummary[]>("/notifications");
 
   const initials = session?.user?.name
     ?.split(" ")
@@ -30,6 +38,14 @@ export function Header({ onMenuClick }: HeaderProps) {
     .join("")
     .toUpperCase()
     .slice(0, 2) || "U";
+
+  const unreadCount = useMemo(() => {
+    const items = notifications ?? [];
+    const unread = items.filter((item) => !item.read).length;
+    if (unread <= 0) return null;
+    if (unread >= 10) return "9+";
+    return `${unread}`;
+  }, [notifications]);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 lg:px-6">
@@ -44,9 +60,14 @@ export function Header({ onMenuClick }: HeaderProps) {
         <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
       </Button>
 
-      <Button variant="ghost" size="icon" asChild>
+      <Button variant="ghost" size="icon" asChild className="relative">
         <Link href="/dashboard/notifications">
           <Bell className="h-5 w-5" />
+          {unreadCount && (
+            <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold text-white">
+              {unreadCount}
+            </span>
+          )}
         </Link>
       </Button>
 
@@ -63,7 +84,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium">{session?.user?.name}</p>
               <p className="text-xs text-muted-foreground">{session?.user?.email}</p>
-              <p className="text-xs text-primary">{session?.user?.role && ROLE_LABELS[session.user.role]}</p>
+              <p className="text-xs text-primary">{session?.user?.role && ROLE_LABELS[session.user.role as keyof typeof ROLE_LABELS]}</p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />

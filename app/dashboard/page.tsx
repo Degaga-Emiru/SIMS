@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useApiData } from "@/lib/hooks/use-api";
 import type { DashboardStats } from "@/types";
-import type { Role } from "@/app/generated/prisma";
+import { type Role } from "@/app/generated/prisma/enums";
 
 interface ChartData {
   salesByMonth: { name: string; value: number }[];
