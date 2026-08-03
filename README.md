@@ -1,105 +1,149 @@
 # Smart Inventory Management System (SIMS)
 
-Production-ready inventory management built with Next.js, PostgreSQL, and Prisma.
+A modern inventory and sales management platform built with Next.js, Prisma, PostgreSQL, and Tailwind CSS. It is designed for small and medium-sized businesses that need a unified system for products, stock movement, purchasing, sales, reporting, and user management.
+
+## Overview
+
+SIMS helps teams manage:
+
+- Products, categories, suppliers, and customers
+- Inventory stock in/out and adjustments
+- Purchase orders and receiving workflows
+- Sales and invoices
+- Low-stock alerts, audit logs, and notifications
+- Role-based access for admins, managers, and staff
 
 ## Tech Stack
 
-- **Frontend:** Next.js 16 App Router, React 19, TypeScript, Tailwind CSS, Shadcn UI
-- **Backend:** Next.js Route Handlers, Prisma ORM
-- **Database:** PostgreSQL (Neon recommended for production)
-- **Auth:** NextAuth.js (JWT + bcrypt)
+- Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui
+- Backend: Next.js API routes, Prisma ORM
+- Database: PostgreSQL
+- Authentication: NextAuth.js with bcrypt
+- Exporting: PDF, Excel, and CSV support
+
+## Features
+
+- Landing page with marketing sections
+- Authentication flow for login, registration, forgot password, and reset password
+- Role-based dashboard access
+- Analytics dashboard with summary cards and charts
+- Product, category, supplier, and customer management
+- Inventory operations including stock adjustments and movement history
+- Purchase order creation, approval, and receiving
+- Sales workflow with invoice generation
+- Reports, exports, notifications, and audit logs
+- Dark mode and company settings
+
+## Project Structure
+
+```text
+app/                # App Router pages and API routes
+components/         # Reusable UI components
+lib/                # Auth, utilities, validations, hooks
+prisma/             # Prisma schema, migrations, and seed data
+types/              # Shared TypeScript types
+docs/               # API documentation
+```
+
+## Prerequisites
+
+Make sure you have the following installed:
+
+- Node.js 20+ or newer
+- npm
+- PostgreSQL 14+ (local or cloud)
 
 ## Getting Started
 
-### 1. Install dependencies
+### 1. Clone the repository
+
+```bash
+git clone <your-repo-url>
+cd inventory-management-system
+```
+
+### 2. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Configure environment
+### 3. Configure environment variables
 
-Copy `.env.example` to `.env` and fill in your values:
+Create a file named `.env` in the project root and add:
 
-```bash
-cp .env.example .env
+```env
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/sims_db?schema=public"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="replace-this-with-a-long-random-string"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# Optional for image uploads
+CLOUDINARY_CLOUD_NAME=""
+CLOUDINARY_API_KEY=""
+CLOUDINARY_API_SECRET=""
 ```
 
-### 3. Set up the database
+> If you are using Neon or another hosted PostgreSQL service, place that connection string in `DATABASE_URL` instead.
+
+### 4. Create the database
+
+If you are using a local PostgreSQL server, create a database called `sims_db` first.
+
+### 5. Run Prisma migrations and seed data
 
 ```bash
+npx prisma generate
 npx prisma migrate dev --name init
-npx prisma db seed
+npm run db:seed
 ```
 
-### 4. Run the development server
+### 6. Start the development server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Then open http://localhost:3000.
 
-**Default admin credentials:** `admin@sims.io` / `admin123`
+### Default login
 
-## Features
+After seeding the database, you can sign in with:
 
-- Landing page with Hero, Features, Pricing, FAQ, Contact
-- Authentication (Login, Register, Forgot/Reset Password)
-- Role-based access (Super Admin, Inventory Manager, Store Manager, Sales Staff)
-- Dashboard with stats, charts, and recent activities
-- Product, Category, Supplier CRUD
-- Inventory management (Stock In/Out/Adjust, Low Stock Alerts)
-- Purchase Orders (Create, Approve, Reject, Receive)
-- Sales with automatic stock reduction
-- Customer management
-- Reports with PDF, Excel, CSV export
-- Notifications and audit logs
-- Company settings, taxes, currency, dark mode
+- Email: `admin@sims.io`
+- Password: `admin123`
 
-## Deployment (Vercel + Neon)
-
-1. Push to GitHub
-2. Create a [Neon](https://neon.tech) PostgreSQL database
-3. Import project in [Vercel](https://vercel.com)
-4. Set environment variables:
-   - `DATABASE_URL`
-   - `NEXTAUTH_URL`
-   - `NEXTAUTH_SECRET`
-   - `CLOUDINARY_*` (optional, for image uploads)
-5. Run migrations: `npx prisma migrate deploy`
-
-## Scripts
+## Available Scripts
 
 | Command | Description |
-|---------|-------------|
-| `npm run dev` | Start dev server |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run build` | Create a production build |
+| `npm run start` | Start the production build |
+| `npm run lint` | Run ESLint |
 | `npm run db:migrate` | Run Prisma migrations |
-| `npm run db:seed` | Seed database |
+| `npm run db:seed` | Seed the database |
 | `npm run db:studio` | Open Prisma Studio |
 
-## Project Structure
+## Deployment
 
-```
-app/
-  (auth)/          # Login, register, password reset
-  (dashboard)/     # Protected dashboard pages
-  api/             # REST API route handlers
-components/
-  landing/         # Landing page sections
-  dashboard/       # Dashboard UI components
-  ui/              # Shadcn UI components
-lib/               # Utilities, auth, validations, hooks
-prisma/            # Schema, migrations, seed
-types/             # Shared TypeScript types
+A common production setup is:
+
+1. Push the repository to GitHub
+2. Create a PostgreSQL database on Neon or another provider
+3. Import the project into Vercel
+4. Add the required environment variables
+5. Run Prisma migrations in production:
+
+```bash
+npx prisma migrate deploy
 ```
 
-## API Documentation
+## Documentation
 
-See [docs/API.md](docs/API.md) for full API reference.
+- API reference: [docs/API.md](docs/API.md)
+- Setup guide: [SETUP.md](SETUP.md)
 
 ## License
 
-MIT
+This project is licensed under the MIT License.
