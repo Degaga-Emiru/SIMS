@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Plus, Check, X, PackageCheck, FileText } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -28,6 +29,7 @@ import {
 import { usePaginatedApi, useApiData } from "@/lib/hooks/use-api";
 import api from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import type { Role } from "@/app/generated/prisma/enums";
 
 interface POItem { productId: string; quantity: number; unitPrice: number }
 interface PurchaseOrder {
@@ -45,6 +47,10 @@ interface Product { id: string; name: string; price: string }
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const role = (session?.user?.role as Role | undefined) ?? "SALES_MANAGER";
+  const isInventoryManager = role === "INVENTORY_MANAGER";
+  const isAdmin = role === "SUPER_ADMIN";
   const { data, loading, page, setPage, totalPages, refetch } =
     usePaginatedApi<PurchaseOrder>("/purchase-orders");
   const { data: suppliersRaw } = usePaginatedApi<Supplier>("/suppliers");
@@ -56,6 +62,8 @@ export default function PurchaseOrdersPage() {
   const [supplierId, setSupplierId] = useState("");
   const [items, setItems] = useState<POItem[]>([{ productId: "", quantity: 1, unitPrice: 0 }]);
   const [saving, setSaving] = useState(false);
+  const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   async function handleCreate() {
     setSaving(true);
@@ -73,7 +81,17 @@ export default function PurchaseOrdersPage() {
 
   async function handleAction(id: string, action: "approve" | "reject" | "receive") {
     try {
-      await api.post(`/purchase-orders/${id}/${action}`);
+      if (action === "reject") {
+        if (!rejectReason.trim()) {
+          toast.error("Please enter a rejection reason");
+          return;
+        }
+        await api.post(`/purchase-orders/${id}/${action}`, { reason: rejectReason });
+        setRejectingOrderId(null);
+        setRejectReason("");
+      } else {
+        await api.post(`/purchase-orders/${id}/${action}`);
+      }
       toast.success(`Order ${action}d`);
       refetch();
     } catch (e) {
@@ -92,11 +110,13 @@ export default function PurchaseOrdersPage() {
     <div className="space-y-6">
       <PageHeader
         title="Purchase Orders"
-        description="Create, approve, and receive purchase orders"
+        description={isInventoryManager ? "Create and receive purchase orders" : "Review purchase orders submitted by the inventory team"}
         action={
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4" /> New Order
-          </Button>
+          isInventoryManager ? (
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4" /> New Order
+            </Button>
+          ) : null
         }
       />
 
@@ -125,17 +145,17 @@ export default function PurchaseOrdersPage() {
                     <FileText className="h-3 w-3 mr-1" /> View
                   </Link>
                 </Button>
-                {r.status === "PENDING" && (
+                {r.status === "PENDING" && isAdmin && (
                   <>
                     <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleAction(r.id, "approve"); }}>
                       <Check className="h-3 w-3" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleAction(r.id, "reject"); }}>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setRejectingOrderId(r.id); }}>
                       <X className="h-3 w-3" />
                     </Button>
                   </>
                 )}
-                {r.status === "APPROVED" && (
+                {r.status === "APPROVED" && isInventoryManager && (
                   <Button size="sm" onClick={(e) => { e.stopPropagation(); handleAction(r.id, "receive"); }}>
                     <PackageCheck className="h-3 w-3 mr-1" /> Receive
                   </Button>
@@ -151,6 +171,26 @@ export default function PurchaseOrdersPage() {
         onPageChange={setPage}
         onRowClick={(row) => router.push(`/dashboard/purchase-orders/${row.id}`)}
       />
+
+      <Dialog open={!!rejectingOrderId} onOpenChange={(open) => { if (!open) { setRejectingOrderId(null); setRejectReason(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Purchase Order</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Reason for rejection</Label>
+            <Input
+              placeholder="Enter the reason for rejecting this order"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectingOrderId(null); setRejectReason(""); }}>Cancel</Button>
+            <Button variant="destructive" onClick={() => rejectingOrderId && handleAction(rejectingOrderId, "reject")}>Reject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
