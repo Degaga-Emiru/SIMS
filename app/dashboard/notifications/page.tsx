@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Bell, CheckCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -22,13 +24,16 @@ interface Notification {
 }
 
 const typeVariant = (type: string) => {
-  if (type === "LOW_STOCK") return "warning" as const;
+  if (type === "LOW_STOCK") return "destructive" as const;
   if (type === "SUCCESS") return "success" as const;
   if (type === "WARNING") return "warning" as const;
   return "secondary" as const;
 };
 
 export default function NotificationsPage() {
+  const { data: session } = useSession();
+  const role = session?.user?.role;
+  const router = useRouter();
   const { data, loading, refetch } = useApiData<Notification[]>("/notifications");
   const notifications = data ?? [];
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
@@ -82,7 +87,7 @@ export default function NotificationsPage() {
           {notifications.map((n) => (
             <Card
               key={n.id}
-              className={`cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/50 ${n.read ? "opacity-60" : ""}`}
+              className={`cursor-pointer transition-colors hover:border-primary/40 ${n.read ? "opacity-60" : ""} ${n.type === "LOW_STOCK" ? "border-destructive/40 bg-destructive/[0.02] hover:bg-destructive/[0.06] hover:border-destructive/60" : "hover:bg-muted/50"}`}
               onClick={() => handleOpenNotification(n)}
             >
               <CardContent className="flex items-start justify-between p-4">
@@ -118,12 +123,51 @@ export default function NotificationsPage() {
               </div>
               <p className="text-sm text-muted-foreground">{selectedNotification.message}</p>
               <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-                <p className="font-medium">Additional details</p>
+                <p className="font-medium">Recommended Action</p>
                 <p className="mt-1 text-muted-foreground">
                   {selectedNotification.type === "LOW_STOCK"
-                    ? "This stock alert highlights a product that needs attention. Review the inventory record and restock if needed."
+                    ? "This stock alert highlights a product that is below its safe threshold. Please review the inventory records and restock if needed."
                     : "This notification contains the latest update related to your account and workflow."}
                 </p>
+                {selectedNotification.type === "LOW_STOCK" && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {["SUPER_ADMIN", "INVENTORY_MANAGER"].includes(role ?? "") && (
+                      <Button
+                        size="sm"
+                        className="bg-destructive hover:bg-destructive/90 text-white border-transparent text-xs"
+                        onClick={() => {
+                          setSelectedNotification(null);
+                          router.push("/dashboard/purchase-orders");
+                        }}
+                      >
+                        Create Purchase Order
+                      </Button>
+                    )}
+                    {role === "STORE_MANAGER" && (
+                      <Button
+                        size="sm"
+                        className="bg-destructive hover:bg-destructive/90 text-white border-transparent text-xs"
+                        onClick={() => {
+                          setSelectedNotification(null);
+                          router.push("/dashboard/stock-requests");
+                        }}
+                      >
+                        Request Warehouse Stock
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() => {
+                        setSelectedNotification(null);
+                        router.push("/dashboard/inventory");
+                      }}
+                    >
+                      View Inventory Records
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="text-xs text-muted-foreground">
                 Received on {formatDate(selectedNotification.createdAt)}

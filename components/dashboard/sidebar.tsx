@@ -18,6 +18,8 @@ import {
   ScrollText,
   UserCog,
   X,
+  PackagePlus,
+  ArrowLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,8 @@ const ICONS = {
   notifications: Bell,
   "audit-logs": ScrollText,
   settings: Settings,
+  "stock-requests": PackagePlus,
+  "stock-transfers": ArrowLeftRight,
 };
 
 interface SidebarProps {
@@ -50,7 +54,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { data: session } = useSession();
   const role = (session?.user?.role ?? "SALES_MANAGER") as Role;
 
-  const visibleItems = NAV_ITEMS.filter((item) => canAccessNav(role, item.permission));
+  const forcePasswordChange = session?.user?.forcePasswordChange;
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (forcePasswordChange) {
+      return item.permission === "settings";
+    }
+    return canAccessNav(role, item.permission);
+  });
 
   return (
     <>
@@ -74,7 +84,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           {visibleItems.map((item) => {
-            const Icon = ICONS[item.permission as keyof typeof ICONS];
+            const Icon = ICONS[item.permission as keyof typeof ICONS] ?? LayoutDashboard;
             const isActive =
               pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));

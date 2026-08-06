@@ -27,6 +27,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { DashboardLoading } from "@/components/dashboard/loading";
 import { SalesManagerDashboard } from "@/components/dashboard/sales-manager-dashboard";
+import { StoreManagerDashboard } from "@/components/dashboard/store-manager-dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useApiData } from "@/lib/hooks/use-api";
@@ -152,6 +153,10 @@ export default function DashboardPage() {
 
   if (role === "SALES_MANAGER") {
     return <SalesManagerDashboard />;
+  }
+
+  if (role === "STORE_MANAGER") {
+    return <StoreManagerDashboard />;
   }
 
   return <AdminDashboard />;

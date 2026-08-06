@@ -4,6 +4,7 @@ import { requireAuth, createAuditLog } from "@/lib/api-auth";
 import { parsePagination, paginatedResponse, validateBody, successResponse, errorResponse } from "@/lib/api-utils";
 import { saleSchema } from "@/lib/validations";
 import { generateOrderNumber } from "@/lib/utils";
+import { sendLowStockEmail } from "@/lib/email-templates";
 
 export async function GET(request: NextRequest) {
   const { session, error } = await requireAuth();
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
   const taxRate = Number(settings?.taxRate ?? 0);
   const taxAmount = (subtotal - data!.discount) * (taxRate / 100);
   const totalAmount = subtotal - data!.discount + taxAmount;
+  let lowStockProducts: { name: string, stock: number, threshold: number }[] = [];
 
   try {
     const sale = await prisma.$transaction(async (tx) => {
@@ -101,6 +103,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (newQty <= product.lowStockThreshold) {
+          lowStockProducts.push({ name: product.name, stock: newQty, threshold: product.lowStockThreshold });
           await tx.notification.create({
             data: {
               title: "Low Stock Alert",
@@ -125,6 +128,19 @@ export async function POST(request: NextRequest) {
     });
 
     await createAuditLog(session!.user.id, "CREATE", "Sale", sale.id);
+
+    // Notify managers about low stock out of transaction
+    if (lowStockProducts.length > 0) {
+      const managers = await prisma.user.findMany({ 
+        where: { role: { in: ["SUPER_ADMIN", "STORE_MANAGER", "INVENTORY_MANAGER"] } } 
+      });
+      for (const m of managers) {
+        for (const p of lowStockProducts) {
+          sendLowStockEmail(m.email, p.name, p.stock, p.threshold).catch(console.error);
+        }
+      }
+    }
+
     return successResponse(sale);
   } catch (e) {
     return errorResponse(e instanceof Error ? e.message : "Failed to create sale", 400);

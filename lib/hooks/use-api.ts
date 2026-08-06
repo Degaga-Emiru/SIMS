@@ -11,7 +11,7 @@ interface PaginatedResult<T> {
   totalPages: number;
 }
 
-export function usePaginatedApi<T>(endpoint: string, params?: Record<string, string | number>) {
+export function usePaginatedApi<T>(endpoint: string, params?: Record<string, string | number>, options?: { pollingInterval?: number }) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -20,8 +20,8 @@ export function usePaginatedApi<T>(endpoint: string, params?: Record<string, str
   const paramsKey = JSON.stringify(params ?? {});
   const stableParams = useMemo(() => params ?? {}, [paramsKey, params]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (background = false) => {
+    if (!background) setLoading(true);
     try {
       const res = await api.get<PaginatedResult<T>>(endpoint, {
         params: { page, limit: 10, search, ...stableParams },
@@ -31,7 +31,7 @@ export function usePaginatedApi<T>(endpoint: string, params?: Record<string, str
     } catch {
       setData([]);
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, [endpoint, page, search, stableParams]);
 
@@ -56,27 +56,35 @@ export function usePaginatedApi<T>(endpoint: string, params?: Record<string, str
     };
 
     run();
+    let interval: NodeJS.Timeout;
+    if (options?.pollingInterval) {
+      interval = setInterval(() => {
+        if (active) fetchData(true);
+      }, options.pollingInterval);
+    }
+
     return () => {
       active = false;
+      if (interval) clearInterval(interval);
     };
-  }, [endpoint, page, search, stableParams]);
+  }, [endpoint, page, search, stableParams, fetchData, options?.pollingInterval]);
 
   return { data, loading, page, setPage, totalPages, search, setSearch, refetch: fetchData };
 }
 
-export function useApiData<T>(endpoint: string) {
+export function useApiData<T>(endpoint: string, options?: { pollingInterval?: number }) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (background = false) => {
+    if (!background) setLoading(true);
     try {
       const res = await api.get<{ data: T }>(endpoint);
       setData(res.data.data);
     } catch {
       setData(null);
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, [endpoint]);
 
@@ -98,10 +106,18 @@ export function useApiData<T>(endpoint: string) {
     };
 
     run();
+    let interval: NodeJS.Timeout;
+    if (options?.pollingInterval) {
+      interval = setInterval(() => {
+        if (active) fetchData(true);
+      }, options.pollingInterval);
+    }
+
     return () => {
       active = false;
+      if (interval) clearInterval(interval);
     };
-  }, [endpoint]);
+  }, [endpoint, fetchData, options?.pollingInterval]);
 
   return { data, loading, refetch: fetchData };
 }

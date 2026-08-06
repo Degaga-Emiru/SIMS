@@ -9,6 +9,8 @@ export const ROUTE_PERMISSIONS: Record<string, Role[] | "all"> = {
   "/dashboard/purchase-orders": ["SUPER_ADMIN", "INVENTORY_MANAGER"],
   "/dashboard/sales": ["SUPER_ADMIN", "STORE_MANAGER", "SALES_MANAGER"],
   "/dashboard/customers": ["SUPER_ADMIN", "STORE_MANAGER", "SALES_MANAGER"],
+  "/dashboard/stock-requests": ["SUPER_ADMIN", "STORE_MANAGER"],
+  "/dashboard/stock-transfers": ["SUPER_ADMIN", "STORE_MANAGER"],
   "/dashboard/employees": ["SUPER_ADMIN"],
   "/dashboard/reports": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"],
   "/dashboard/notifications": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"],
@@ -24,6 +26,8 @@ export const NAV_ITEMS = [
   { href: "/dashboard/inventory", label: "Inventory", permission: "inventory" },
   { href: "/dashboard/purchase-orders", label: "Purchase Orders", permission: "purchase-orders" },
   { href: "/dashboard/sales", label: "Sales", permission: "sales" },
+  { href: "/dashboard/stock-requests", label: "Stock Requests", permission: "stock-requests" },
+  { href: "/dashboard/stock-transfers", label: "Stock Transfers", permission: "stock-transfers" },
   { href: "/dashboard/customers", label: "Customers", permission: "customers" },
   { href: "/dashboard/employees", label: "Employee Management", permission: "employees" },
   { href: "/dashboard/reports", label: "Reports", permission: "reports" },
@@ -48,7 +52,7 @@ export function canAccessNav(role: Role, permission: string): boolean {
   const perms: Record<Role, string[]> = {
     SUPER_ADMIN: ["*"],
     INVENTORY_MANAGER: ["dashboard", "products", "categories", "suppliers", "inventory", "purchase-orders", "reports", "notifications", "settings"],
-    STORE_MANAGER: ["dashboard", "products", "inventory", "sales", "customers", "reports", "notifications", "settings"],
+    STORE_MANAGER: ["dashboard", "products", "inventory", "sales", "customers", "reports", "notifications", "settings", "stock-requests", "stock-transfers"],
     SALES_MANAGER: ["dashboard", "products", "inventory", "sales", "customers", "reports", "notifications", "settings"],
   };
   return perms[role].includes(permission);

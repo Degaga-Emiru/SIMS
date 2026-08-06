@@ -36,7 +36,7 @@ export function Hero() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button size="lg" asChild className="shadow-lg shadow-primary/25">
-                <Link href="/register">
+                <Link href="/login">
                   Start Free Trial
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>

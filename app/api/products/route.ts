@@ -4,6 +4,7 @@ import { requireAuth, createAuditLog } from "@/lib/api-auth";
 import { parsePagination, paginatedResponse, validateBody, successResponse, errorResponse } from "@/lib/api-utils";
 import { canWriteProducts } from "@/lib/permissions";
 import { productSchema } from "@/lib/validations";
+import { sendNewProductEmail } from "@/lib/email-templates";
 
 export async function GET(request: NextRequest) {
   const { error } = await requireAuth();
@@ -59,6 +60,15 @@ export async function POST(request: NextRequest) {
       include: { category: true, supplier: true },
     });
     await createAuditLog(session!.user.id, "CREATE", "Product", product.id);
+
+    // Notify managers
+    const managers = await prisma.user.findMany({ 
+      where: { role: { in: ["SUPER_ADMIN", "STORE_MANAGER", "INVENTORY_MANAGER"] } } 
+    });
+    for (const m of managers) {
+      sendNewProductEmail(m.email, product.name, session!.user.name).catch(console.error);
+    }
+
     return successResponse(product);
   } catch (e) {
     return errorResponse(e instanceof Error ? e.message : "Failed to create product", 400);

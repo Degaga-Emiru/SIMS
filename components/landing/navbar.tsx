@@ -65,7 +65,7 @@ export function Navbar() {
             <Link href="/login">Log in</Link>
           </Button>
           <Button asChild className="shadow-sm shadow-primary/25">
-            <Link href="/register">Get Started</Link>
+            <Link href="/login">Get Started</Link>
           </Button>
         </div>
 
@@ -101,7 +101,7 @@ export function Navbar() {
               </Link>
             </Button>
             <Button asChild className="w-full">
-              <Link href="/register" onClick={() => setIsOpen(false)}>
+              <Link href="/login" onClick={() => setIsOpen(false)}>
                 Get Started
               </Link>
             </Button>

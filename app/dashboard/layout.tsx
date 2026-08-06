@@ -1,11 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import toast from "react-hot-toast";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Header } from "@/components/dashboard/header";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { data: session } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (session?.user?.forcePasswordChange && pathname !== "/dashboard/settings") {
+      router.replace("/dashboard/settings");
+      toast.error("Please change your temporary password before accessing the system.", {
+        id: "force-password-change-toast",
+      });
+    }
+  }, [session, pathname, router]);
 
   return (
     <div className="flex min-h-screen">

@@ -6,7 +6,7 @@ import type { Role } from "@/app/generated/prisma";
 const authPages = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 export default withAuth(
-  function middleware(req) {
+  function proxy(req) {
     const token = req.nextauth.token;
     const isAuthenticated = !!token;
     const { pathname } = req.nextUrl;

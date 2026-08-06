@@ -89,11 +89,19 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.forcePasswordChange = user.forcePasswordChange;
+        token.picture = user.image;
+      }
+      if (trigger === "update" && session) {
+        if (session.name) token.name = session.name;
+        if (session.image) token.picture = session.image;
+        if (session.forcePasswordChange !== undefined) {
+          token.forcePasswordChange = session.forcePasswordChange;
+        }
       }
       return token;
     },
@@ -102,6 +110,8 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.forcePasswordChange = token.forcePasswordChange;
+        if (token.name) session.user.name = token.name;
+        if (token.picture) session.user.image = token.picture;
       }
       return session;
     },

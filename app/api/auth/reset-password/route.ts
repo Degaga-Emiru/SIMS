@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import prisma from "@/lib/prisma";
 import { resetPasswordSchema } from "@/lib/validations";
 import { validateBody, errorResponse, successResponse } from "@/lib/api-utils";
+import { sendPasswordResetSuccessEmail } from "@/lib/email-templates";
 
 export async function POST(request: Request) {
   const { data, error } = await validateBody(request, resetPasswordSchema);
@@ -36,6 +37,8 @@ export async function POST(request: Request) {
       where: { id: resetToken.id },
     }),
   ]);
+
+  sendPasswordResetSuccessEmail(resetToken.user.email, resetToken.user.name).catch(console.error);
 
   return successResponse(null, "Password reset successfully");
 }

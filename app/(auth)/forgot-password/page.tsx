@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AuthForm } from "@/components/auth/auth-form";
@@ -9,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validations";
+import toast from "react-hot-toast";
 
 type ForgotPasswordForm = Omit<ForgotPasswordInput, never>;
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,6 +48,10 @@ export default function ForgotPasswordPage() {
       }
 
       setSuccess(result.message);
+      toast.success("Verification code sent! Redirecting...");
+      setTimeout(() => {
+        router.push("/reset-password");
+      }, 1500);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -55,7 +62,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthForm
       title="Forgot password"
-      description="Enter your email and we'll send you a reset link"
+      description="Enter your email and we'll send you a 6-digit verification code"
       error={error}
       success={success}
     >
@@ -76,7 +83,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading || !!success}>
-          {isLoading ? "Sending..." : "Send reset link"}
+          {isLoading ? "Sending Code..." : "Send Verification Code"}
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">

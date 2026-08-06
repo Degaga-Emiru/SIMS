@@ -144,40 +144,49 @@ export default function SalesPage() {
                 </SelectContent>
               </Select>
             </div>
-            {items.map((item, i) => (
-              <div key={i} className="grid grid-cols-3 gap-2">
-                <Select
-                  value={item.productId}
-                  onValueChange={(v) => {
-                    const p = products.find((x) => x.id === v);
+            {items.map((item, i) => {
+              const selectedProduct = productList.find(p => p.id === item.productId);
+              return (
+              <div key={i} className="space-y-1">
+                <div className="grid grid-cols-3 gap-2">
+                  <Select
+                    value={item.productId}
+                    onValueChange={(v) => {
+                      const p = products.find((x) => x.id === v);
+                      const next = [...items];
+                      next[i] = { ...next[i], productId: v, unitPrice: p ? Number(p.sellingPrice) : 0 };
+                      setItems(next);
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
+                    <SelectContent>
+                      {productList.length ? (
+                        productList.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.name} ({p.stockQuantity})</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>No products available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Input type="number" value={item.quantity} onChange={(e) => {
                     const next = [...items];
-                    next[i] = { ...next[i], productId: v, unitPrice: p ? Number(p.sellingPrice) : 0 };
+                    next[i].quantity = +e.target.value;
                     setItems(next);
-                  }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
-                  <SelectContent>
-                    {productList.length ? (
-                      productList.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.name} ({p.stockQuantity})</SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="" disabled>No products available</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                <Input type="number" value={item.quantity} onChange={(e) => {
-                  const next = [...items];
-                  next[i].quantity = +e.target.value;
-                  setItems(next);
-                }} />
-                <Input type="number" value={item.unitPrice} onChange={(e) => {
-                  const next = [...items];
-                  next[i].unitPrice = +e.target.value;
-                  setItems(next);
-                }} />
+                  }} />
+                  <Input type="number" value={item.unitPrice} onChange={(e) => {
+                    const next = [...items];
+                    next[i].unitPrice = +e.target.value;
+                    setItems(next);
+                  }} />
+                </div>
+                {selectedProduct && (
+                  <p className="text-xs text-muted-foreground ml-1">
+                    Available Stock: <span className="font-medium text-primary">{selectedProduct.stockQuantity}</span>
+                  </p>
+                )}
               </div>
-            ))}
+            )})}
             <Button variant="outline" size="sm" onClick={() => setItems([...items, { productId: "", quantity: 1, unitPrice: 0 }])}>
               Add Item
             </Button>

@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/api-auth";
 import { successResponse, errorResponse } from "@/lib/api-utils";
+import { apiCache } from "@/lib/cache";
 
 export async function GET() {
   const { session, error } = await requireAuth();
@@ -11,6 +12,10 @@ export async function GET() {
   }
 
   const userId = session!.user.id;
+  const cacheKey = `dashboard:sales-manager:${userId}`;
+  const cached = apiCache.get(cacheKey);
+  if (cached) return successResponse(cached);
+
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -93,7 +98,7 @@ export async function GET() {
       catMap.set(cat, (catMap.get(cat) ?? 0) + si.quantity);
     });
 
-    return successResponse({
+    const responseData = {
       stats: {
         todaySales,
         todayRevenue: todayRev,
@@ -108,7 +113,11 @@ export async function GET() {
       topSellingProducts,
       salesByCategory: Array.from(catMap.entries()).map(([name, value]) => ({ name, value })),
       recentSales,
-    });
+    };
+
+    apiCache.set(cacheKey, responseData, 5000); // cache for 5 seconds
+
+    return successResponse(responseData);
   } catch (e) {
     return errorResponse(e instanceof Error ? e.message : "Failed to fetch stats");
   }

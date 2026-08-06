@@ -14,7 +14,7 @@ import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validations"
 function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") ?? "";
+  const defaultToken = searchParams.get("token") ?? "";
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +25,7 @@ function ResetPasswordForm() {
     formState: { errors },
   } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
-    defaultValues: { token },
+    defaultValues: { token: defaultToken, password: "", confirmPassword: "" },
   });
 
   async function onSubmit(data: ResetPasswordInput) {
@@ -54,22 +54,24 @@ function ResetPasswordForm() {
     }
   }
 
-  if (!token) {
-    return (
-      <AuthForm title="Invalid link" error="Reset token is missing or invalid.">
-        <p className="text-center text-sm text-muted-foreground">
-          <Link href="/forgot-password" className="font-medium text-primary hover:underline">
-            Request a new reset link
-          </Link>
-        </p>
-      </AuthForm>
-    );
-  }
-
   return (
-    <AuthForm title="Reset password" description="Enter your new password below">
+    <AuthForm title="Reset password" description="Enter the 6-digit code and your new password">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <input type="hidden" {...register("token")} />
+        <div className="space-y-2">
+          <Label htmlFor="token">Verification Code (6-Digit OTP)</Label>
+          <Input
+            id="token"
+            type="text"
+            maxLength={6}
+            placeholder="123456"
+            className="font-mono text-center text-lg tracking-[0.5em]"
+            disabled={isLoading}
+            {...register("token")}
+          />
+          {errors.token && (
+            <p className="text-sm text-destructive">{errors.token.message}</p>
+          )}
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="password">New Password</Label>
@@ -108,8 +110,8 @@ function ResetPasswordForm() {
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
-          <Link href="/login" className="font-medium text-primary hover:underline">
-            Back to sign in
+          <Link href="/forgot-password" className="font-medium text-primary hover:underline">
+            Resend verification code
           </Link>
         </p>
       </form>

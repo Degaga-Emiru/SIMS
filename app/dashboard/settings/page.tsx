@@ -56,7 +56,7 @@ interface CompanySettings {
 }
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const { setTheme } = useTheme();
   const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
@@ -156,6 +156,11 @@ export default function SettingsPage() {
       setProfile(res.data.data);
       setEditing(false);
       setProfileForm((f) => ({ ...f, currentPassword: "", newPassword: "", confirmPassword: "" }));
+      await update({
+        name: res.data.data.name,
+        image: res.data.data.image,
+        forcePasswordChange: false,
+      });
       toast.success("Profile updated");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update");

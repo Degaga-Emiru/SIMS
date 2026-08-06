@@ -48,7 +48,7 @@ interface SMData {
 const COLORS = ["#16a34a", "#22c55e", "#4ade80", "#86efac", "#bbf7d0"];
 
 export function SalesManagerDashboard() {
-  const { data, loading } = useApiData<SMData>("/dashboard/sales-manager");
+  const { data, loading } = useApiData<SMData>("/dashboard/sales-manager", { pollingInterval: 5000 });
 
   if (loading) return <p className="text-muted-foreground">Loading dashboard...</p>;
   if (!data) return null;
