@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       skip,
       take: limit,
       orderBy: { [sortBy]: sortOrder },
-      include: { category: true, supplier: true },
+      include: { category: true, supplier: true, brand: true, warehouseStocks: { include: { warehouse: true } } },
     }),
     prisma.product.count({ where }),
   ]);
@@ -55,9 +55,11 @@ export async function POST(request: NextRequest) {
       data: {
         ...data!,
         barcode: data!.barcode || null,
+        qrCode: data!.qrCode || `QR-${data!.sku}`,
+        brandId: data!.brandId || null,
         supplierId: data!.supplierId || null,
       },
-      include: { category: true, supplier: true },
+      include: { category: true, supplier: true, brand: true },
     });
     await createAuditLog(session!.user.id, "CREATE", "Product", product.id);
 

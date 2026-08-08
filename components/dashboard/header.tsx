@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { Bell, Menu, Moon, Sun } from "lucide-react";
+import { Bell, Menu, Moon, Sun, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,7 +37,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     .map((n) => n[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2) || "U";
+    .slice(0, 2);
 
   const unreadCount = useMemo(() => {
     const items = notifications ?? [];
@@ -76,7 +76,9 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
               {session?.user?.image ? <AvatarImage src={session.user.image} alt={session.user.name ?? "User avatar"} /> : null}
-              <AvatarFallback className="bg-primary text-primary-foreground">{initials}</AvatarFallback>
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {initials || <User className="h-5 w-5" />}
+              </AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>

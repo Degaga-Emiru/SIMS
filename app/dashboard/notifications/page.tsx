@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, AlertTriangle, CheckCircle2, Info, AlertCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,13 @@ const typeVariant = (type: string) => {
   if (type === "SUCCESS") return "success" as const;
   if (type === "WARNING") return "warning" as const;
   return "secondary" as const;
+};
+
+const TypeIcon = ({ type, className }: { type: string, className?: string }) => {
+  if (type === "LOW_STOCK") return <AlertCircle className={className} />;
+  if (type === "SUCCESS") return <CheckCircle2 className={className} />;
+  if (type === "WARNING") return <AlertTriangle className={className} />;
+  return <Info className={className} />;
 };
 
 export default function NotificationsPage() {
@@ -91,13 +98,18 @@ export default function NotificationsPage() {
               onClick={() => handleOpenNotification(n)}
             >
               <CardContent className="flex items-start justify-between p-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{n.title}</p>
-                    <Badge variant={typeVariant(n.type)}>{n.type.replace("_", " ")}</Badge>
+                <div className="flex gap-4">
+                  <div className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full ${n.type === "LOW_STOCK" ? "bg-destructive/10 text-destructive" : n.type === "SUCCESS" ? "bg-green-500/10 text-green-600" : n.type === "WARNING" ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary"}`}>
+                    <TypeIcon type={n.type} className="h-4 w-4" />
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{n.message}</p>
-                  <p className="text-xs text-muted-foreground mt-2">{formatDate(n.createdAt)}</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{n.title}</p>
+                      <Badge variant={typeVariant(n.type)}>{n.type.replace("_", " ")}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{n.message}</p>
+                    <p className="text-xs text-muted-foreground mt-2">{formatDate(n.createdAt)}</p>
+                  </div>
                 </div>
                 <p className="text-sm text-primary">View details</p>
               </CardContent>
@@ -109,7 +121,10 @@ export default function NotificationsPage() {
       <Dialog open={!!selectedNotification} onOpenChange={(open) => !open && setSelectedNotification(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedNotification?.title ?? "Notification details"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedNotification && <TypeIcon type={selectedNotification.type} className="h-5 w-5" />}
+              {selectedNotification?.title ?? "Notification details"}
+            </DialogTitle>
           </DialogHeader>
           {selectedNotification && (
             <div className="space-y-4">

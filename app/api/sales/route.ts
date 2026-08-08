@@ -42,30 +42,35 @@ export async function POST(request: NextRequest) {
   const subtotal = data!.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
   const settings = await prisma.companySettings.findFirst();
   const taxRate = Number(settings?.taxRate ?? 0);
-  const taxAmount = (subtotal - data!.discount) * (taxRate / 100);
-  const totalAmount = subtotal - data!.discount + taxAmount;
+  const taxAmount = (subtotal - (data!.discount || 0)) * (taxRate / 100);
+  const totalAmount = subtotal - (data!.discount || 0) + taxAmount;
+  const isQuotation = data!.type === "QUOTATION";
   let lowStockProducts: { name: string, stock: number, threshold: number }[] = [];
 
   try {
     const sale = await prisma.$transaction(async (tx) => {
-      for (const item of data!.items) {
-        const product = await tx.product.findUniqueOrThrow({ where: { id: item.productId } });
-        if (product.stockQuantity < item.quantity) {
-          throw new Error(`Insufficient stock for ${product.name}`);
+      // Only check/deduct stock for real invoices
+      if (!isQuotation) {
+        for (const item of data!.items) {
+          const product = await tx.product.findUniqueOrThrow({ where: { id: item.productId } });
+          if (product.stockQuantity < item.quantity) {
+            throw new Error(`Insufficient stock for ${product.name}`);
+          }
         }
       }
 
       const newSale = await tx.sale.create({
         data: {
-          invoiceNumber: generateOrderNumber("INV"),
+          invoiceNumber: generateOrderNumber(isQuotation ? "QUO" : "INV"),
           subtotal,
           taxAmount,
-          discount: data!.discount,
+          discount: data!.discount || 0,
           totalAmount,
           notes: data!.notes,
           customerId: data!.customerId || null,
           userId: session!.user.id,
-          status: "COMPLETED",
+          type: isQuotation ? "QUOTATION" : "INVOICE",
+          status: isQuotation ? "QUOTATION" : "COMPLETED",
           items: {
             create: data!.items.map((item) => ({
               productId: item.productId,
@@ -74,19 +79,23 @@ export async function POST(request: NextRequest) {
               totalPrice: item.quantity * item.unitPrice,
             })),
           },
-          payments: {
-            create: {
-              amount: data!.payment.amount,
-              method: data!.payment.method,
-              status: "COMPLETED",
-              reference: data!.payment.reference,
+          ...((!isQuotation && data!.payment) ? {
+            payments: {
+              create: {
+                amount: data!.payment.amount,
+                method: data!.payment.method,
+                status: "COMPLETED",
+                reference: data!.payment.reference,
+              },
             },
-          },
+          } : {}),
         },
         include: { customer: true, items: { include: { product: true } }, payments: true },
       });
 
-      for (const item of data!.items) {
+      // Only deduct stock for invoices
+      if (!isQuotation) {
+        for (const item of data!.items) {
         const product = await tx.product.findUniqueOrThrow({ where: { id: item.productId } });
         const newQty = product.stockQuantity - item.quantity;
         await tx.product.update({ where: { id: item.productId }, data: { stockQuantity: newQty } });
@@ -102,18 +111,19 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        if (newQty <= product.lowStockThreshold) {
-          lowStockProducts.push({ name: product.name, stock: newQty, threshold: product.lowStockThreshold });
-          await tx.notification.create({
-            data: {
-              title: "Low Stock Alert",
-              message: `${product.name} is running low (${newQty} remaining)`,
-              type: "LOW_STOCK",
-              userId: session!.user.id,
-            },
-          });
-        }
-      }
+          if (newQty <= product.lowStockThreshold) {
+              lowStockProducts.push({ name: product.name, stock: newQty, threshold: product.lowStockThreshold });
+              await tx.notification.create({
+                data: {
+                  title: "Low Stock Alert",
+                  message: `${product.name} is running low (${newQty} remaining)`,
+                  type: "LOW_STOCK",
+                  userId: session!.user.id,
+                },
+              });
+            }
+          }
+      } // end if (!isQuotation)
 
       await tx.notification.create({
         data: {

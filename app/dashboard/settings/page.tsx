@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { Upload, Pencil, Lock } from "lucide-react";
+import { Upload, Pencil, Lock, User } from "lucide-react";
 import toast from "react-hot-toast";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
@@ -190,7 +190,7 @@ export default function SettingsPage() {
 
   if (loading) return <p className="text-muted-foreground">Loading settings...</p>;
 
-  const initials = profile?.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "U";
+  const initials = profile?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <div className="space-y-6">
@@ -223,7 +223,9 @@ export default function SettingsPage() {
                   {(profileForm.image || profile?.image) && (
                     <AvatarImage src={profileForm.image || profile?.image || ""} />
                   )}
-                  <AvatarFallback className="text-xl bg-primary text-primary-foreground">{initials}</AvatarFallback>
+                  <AvatarFallback className="text-xl bg-primary text-primary-foreground">
+                    {initials || <User className="h-10 w-10" />}
+                  </AvatarFallback>
                 </Avatar>
                 {editing && (
                   <label className="cursor-pointer">

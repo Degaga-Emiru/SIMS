@@ -7,15 +7,24 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
   const { session, error } = await requireAuth();
   if (error) return error;
 
+  const role = session!.user.role;
+  if (!["SUPER_ADMIN", "INVENTORY_MANAGER"].includes(role)) {
+    return errorResponse("Only Inventory Managers or Super Admins can approve purchase orders", 403);
+  }
+
   const { id } = await params;
   try {
     const order = await prisma.purchaseOrder.update({
-      where: { id, status: "PENDING" },
-      data: { status: "APPROVED", approvedAt: new Date() },
+      where: { id, status: { in: ["REQUESTED", "PENDING"] } },
+      data: {
+        status: "APPROVED",
+        approvedAt: new Date(),
+        approvedById: session!.user.id,
+      },
     });
     await createAuditLog(session!.user.id, "APPROVE", "PurchaseOrder", id);
     return successResponse(order);
   } catch {
-    return errorResponse("Order not found or not pending", 400);
+    return errorResponse("Order not found or cannot be approved", 400);
   }
 }

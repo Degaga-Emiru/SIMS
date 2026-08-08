@@ -35,9 +35,14 @@ enum TransactionType {
   STOCK_IN
   STOCK_OUT
   ADJUSTMENT
+  DAMAGE
+  LOST
+  RETURNED
+  EXPIRED
 }
 
 enum PurchaseOrderStatus {
+  REQUESTED
   PENDING
   APPROVED
   REJECTED
@@ -46,10 +51,17 @@ enum PurchaseOrderStatus {
 }
 
 enum SaleStatus {
+  QUOTATION
   PENDING
   COMPLETED
   CANCELLED
   REFUNDED
+}
+
+enum SaleType {
+  QUOTATION
+  ORDER
+  INVOICE
 }
 
 enum PaymentMethod {
@@ -71,6 +83,9 @@ enum NotificationType {
   SUCCESS
   WARNING
   INFO
+  PAYMENT_DUE
+  NEW_ORDER
+  AI_ALERT
 }
 
 model User {
@@ -98,6 +113,9 @@ model User {
   sales                 Sale[]
   notifications         Notification[]
   customersCreated      Customer[]             @relation("CustomerCreatedBy")
+  purchaseRequests      PurchaseOrder[]        @relation("PurchaseRequestedBy")
+  purchaseApprovals     PurchaseOrder[]        @relation("PurchaseApprovedBy")
+  managedWarehouses     Warehouse[]            @relation("WarehouseManager")
 }
 
 model PasswordResetToken {
@@ -118,17 +136,55 @@ model Category {
   products    Product[]
 }
 
+model Brand {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model Warehouse {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  location    String?
+  managerId   String?
+  manager     User?            @relation("WarehouseManager", fields: [managerId], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  stocks                WarehouseStock[]
+  inventoryTransactions InventoryTransaction[]
+}
+
+model WarehouseStock {
+  id               String    @id @default(cuid())
+  warehouseId      String
+  warehouse        Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity         Int       @default(0)
+  reservedQuantity Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([warehouseId, productId])
+}
+
 model Supplier {
-  id             String          @id @default(cuid())
-  name           String
-  email          String?
-  phone          String?
-  address        String?
-  contactPerson  String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  products       Product[]
-  purchaseOrders PurchaseOrder[]
+  id                 String          @id @default(cuid())
+  name               String
+  email              String?
+  phone              String?
+  address            String?
+  contactPerson      String?
+  tin                String?
+  rating             Float?
+  outstandingBalance Decimal         @db.Decimal(10, 2) @default(0)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  products           Product[]
+  purchaseOrders     PurchaseOrder[]
 }
 
 model Product {
@@ -136,15 +192,26 @@ model Product {
   name              String
   sku               String        @unique
   barcode           String?       @unique
+  qrCode            String?       @unique
   description       String?
   price             Decimal       @db.Decimal(10, 2)
   sellingPrice      Decimal       @db.Decimal(10, 2)
+  wholesalePrice    Decimal?      @db.Decimal(10, 2)
+  tax               Decimal?      @db.Decimal(5, 2) @default(0)
+  discount          Decimal?      @db.Decimal(5, 2) @default(0)
   stockQuantity     Int           @default(0)
   lowStockThreshold Int           @default(10)
+  maxStock          Int?
+  unit              String?
+  weight            Decimal?      @db.Decimal(10, 2)
+  dimensions        String?
+  videos            String[]
   status            ProductStatus @default(ACTIVE)
   image             String?
   categoryId        String
   category          Category      @relation(fields: [categoryId], references: [id])
+  brandId           String?
+  brand             Brand?        @relation(fields: [brandId], references: [id])
   supplierId        String?
   supplier          Supplier?     @relation(fields: [supplierId], references: [id])
   createdAt         DateTime      @default(now())
@@ -153,6 +220,7 @@ model Product {
   inventoryTransactions InventoryTransaction[]
   purchaseOrderItems    PurchaseOrderItem[]
   saleItems             SaleItem[]
+  warehouseStocks       WarehouseStock[]
 }
 
 model InventoryTransaction {
@@ -164,6 +232,8 @@ model InventoryTransaction {
   reason      String?
   productId   String
   product     Product         @relation(fields: [productId], references: [id])
+  warehouseId String?
+  warehouse   Warehouse?      @relation(fields: [warehouseId], references: [id])
   userId      String
   user        User            @relation(fields: [userId], references: [id])
   createdAt   DateTime        @default(now())
@@ -175,25 +245,31 @@ model AuditLog {
   entity    String
   entityId  String?
   details   Json?
+  ipAddress String?
+  device    String?
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
 }
 
 model PurchaseOrder {
-  id          String              @id @default(cuid())
-  orderNumber String              @unique
-  status      PurchaseOrderStatus @default(PENDING)
-  totalAmount Decimal             @db.Decimal(10, 2)
-  notes       String?
-  supplierId  String
-  supplier    Supplier            @relation(fields: [supplierId], references: [id])
-  userId      String
-  user        User                @relation(fields: [userId], references: [id])
-  approvedAt  DateTime?
-  receivedAt  DateTime?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  id            String              @id @default(cuid())
+  orderNumber   String              @unique
+  status        PurchaseOrderStatus @default(PENDING)
+  totalAmount   Decimal             @db.Decimal(10, 2)
+  notes         String?
+  supplierId    String
+  supplier      Supplier            @relation(fields: [supplierId], references: [id])
+  requestedById String?
+  requestedBy   User?               @relation("PurchaseRequestedBy", fields: [requestedById], references: [id])
+  approvedById  String?
+  approvedBy    User?               @relation("PurchaseApprovedBy", fields: [approvedById], references: [id])
+  userId        String
+  user          User                @relation(fields: [userId], references: [id])
+  approvedAt    DateTime?
+  receivedAt    DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
   items PurchaseOrderItem[]
 }
@@ -230,6 +306,7 @@ model Sale {
   id            String     @id @default(cuid())
   invoiceNumber String     @unique
   status        SaleStatus @default(PENDING)
+  type          SaleType   @default(INVOICE)
   subtotal      Decimal    @db.Decimal(10, 2)
   taxAmount     Decimal    @db.Decimal(10, 2) @default(0)
   discount      Decimal    @db.Decimal(10, 2) @default(0)

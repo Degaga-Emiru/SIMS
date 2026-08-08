@@ -12,7 +12,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const product = await prisma.product.findUnique({
     where: { id },
-    include: { category: true, supplier: true },
+    include: { category: true, supplier: true, brand: true, warehouseStocks: { include: { warehouse: true } } },
   });
   if (!product) return errorResponse("Product not found", 404);
   return successResponse(product);
@@ -35,9 +35,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       data: {
         ...data!,
         barcode: data!.barcode || null,
+        qrCode: data!.qrCode || `QR-${data!.sku}`,
+        brandId: data!.brandId || null,
         supplierId: data!.supplierId || null,
       },
-      include: { category: true, supplier: true },
+      include: { category: true, supplier: true, brand: true },
     });
     await createAuditLog(session!.user.id, "UPDATE", "Product", id);
     return successResponse(product);

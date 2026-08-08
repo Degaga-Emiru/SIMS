@@ -34,6 +34,7 @@ interface Transaction {
   reason: string | null;
   createdAt: string;
   product: { name: string; sku: string };
+  warehouse: { name: string } | null;
   user: { name: string };
 }
 
@@ -45,6 +46,12 @@ interface Product {
   lowStockThreshold: number;
 }
 
+interface Warehouse {
+  id: string;
+  name: string;
+  location: string | null;
+}
+
 export default function InventoryPage() {
   const { data: session } = useSession();
   const canWrite = canWriteInventory((session?.user?.role ?? "SALES_MANAGER") as Role);
@@ -52,11 +59,13 @@ export default function InventoryPage() {
     usePaginatedApi<Transaction>("/inventory");
   const { data: lowStock, refetch: refetchLowStock } = useApiData<Product[]>("/inventory/low-stock");
   const { data: productsRaw } = usePaginatedApi<Product>("/products");
+  const { data: warehouses } = usePaginatedApi<Warehouse>("/warehouses", { limit: 100 });
   const products = productsRaw;
 
   const [form, setForm] = useState({
     productId: "",
-    type: "STOCK_IN" as "STOCK_IN" | "STOCK_OUT" | "ADJUSTMENT",
+    warehouseId: "",
+    type: "STOCK_IN" as string,
     quantity: 1,
     reason: "",
   });
@@ -68,7 +77,7 @@ export default function InventoryPage() {
     try {
       await api.post("/inventory", form);
       toast.success("Inventory updated");
-      setForm({ productId: "", type: "STOCK_IN", quantity: 1, reason: "" });
+      setForm({ productId: "", warehouseId: "", type: "STOCK_IN", quantity: 1, reason: "" });
       refetch();
       refetchLowStock();
     } catch (err) {
@@ -107,13 +116,28 @@ export default function InventoryPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Type</Label>
-                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as typeof form.type })}>
+                <Label>Warehouse *</Label>
+                <Select value={form.warehouseId} onValueChange={(v) => setForm({ ...form, warehouseId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select warehouse" /></SelectTrigger>
+                  <SelectContent>
+                    {warehouses.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>{w.name}{w.location ? ` — ${w.location}` : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Transaction Type</Label>
+                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="STOCK_IN">Stock In</SelectItem>
-                    <SelectItem value="STOCK_OUT">Stock Out</SelectItem>
-                    <SelectItem value="ADJUSTMENT">Adjust Stock</SelectItem>
+                    <SelectItem value="STOCK_IN">📦 Stock In (Receiving)</SelectItem>
+                    <SelectItem value="STOCK_OUT">📤 Stock Out (Dispatch)</SelectItem>
+                    <SelectItem value="ADJUSTMENT">🔧 Adjustment (Correction)</SelectItem>
+                    <SelectItem value="DAMAGE">💥 Damage (Write-off)</SelectItem>
+                    <SelectItem value="LOST">❌ Lost / Missing</SelectItem>
+                    <SelectItem value="EXPIRED">⏰ Expired</SelectItem>
+                    <SelectItem value="RETURNED">↩️ Returned by Customer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -125,7 +149,7 @@ export default function InventoryPage() {
                 <Label>Reason</Label>
                 <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Optional" />
               </div>
-              <Button type="submit" className="w-full" disabled={saving || !form.productId}>
+              <Button type="submit" className="w-full" disabled={saving || !form.productId || !form.warehouseId}>
                 {saving ? "Saving..." : "Submit"}
               </Button>
             </form>
@@ -197,13 +221,19 @@ export default function InventoryPage() {
                   </div>
                 ),
               },
-              { key: "product", header: "Product", render: (r) => r.product.name },
+              { key: "product", header: "Product", render: (r: Transaction) => (
+                <div>
+                  <p className="font-medium">{r.product.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{r.product.sku}</p>
+                </div>
+              )},
+              { key: "warehouse", header: "Warehouse", render: (r: Transaction) => r.warehouse?.name ?? "—" },
               { key: "quantity", header: "Qty" },
               { key: "previousQty", header: "Before" },
               { key: "newQty", header: "After" },
-              { key: "reason", header: "Reason", render: (r) => r.reason ?? "—" },
-              { key: "user", header: "By", render: (r) => r.user.name },
-              { key: "createdAt", header: "Date", render: (r) => formatDate(r.createdAt) },
+              { key: "reason", header: "Reason", render: (r: Transaction) => r.reason ?? "—" },
+              { key: "user", header: "By", render: (r: Transaction) => r.user.name },
+              { key: "createdAt", header: "Date", render: (r: Transaction) => formatDate(r.createdAt) },
             ]}
             data={history}
             loading={loading}

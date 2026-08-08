@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
       include: {
         product: { select: { name: true, sku: true } },
+        warehouse: { select: { name: true } },
         user: { select: { name: true } },
       },
     }),
@@ -37,34 +38,55 @@ export async function POST(request: NextRequest) {
   const { data, error: validationError } = await validateBody(request, inventoryTransactionSchema);
   if (validationError) return validationError;
 
-  const { productId, type, quantity, reason } = data!;
+  const { productId, warehouseId, type, quantity, reason } = data!;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
       const product = await tx.product.findUniqueOrThrow({ where: { id: productId } });
-      const previousQty = product.stockQuantity;
+      const warehouseStock = await tx.warehouseStock.findUnique({
+        where: { warehouseId_productId: { warehouseId, productId } },
+      });
+
+      const previousQty = warehouseStock?.quantity || 0;
       let newQty = previousQty;
 
-      if (type === "STOCK_IN") newQty = previousQty + quantity;
-      else if (type === "STOCK_OUT") {
-        if (previousQty < quantity) throw new Error("Insufficient stock");
+      if (type === "STOCK_IN" || type === "RETURNED") newQty = previousQty + quantity;
+      else if (["STOCK_OUT", "DAMAGE", "LOST", "EXPIRED"].includes(type)) {
+        if (previousQty < quantity) throw new Error(`Insufficient stock in warehouse for ${type}`);
         newQty = previousQty - quantity;
-      } else {
+      } else if (type === "ADJUSTMENT") {
         newQty = quantity;
       }
 
-      await tx.product.update({ where: { id: productId }, data: { stockQuantity: newQty } });
+      const diff = newQty - previousQty;
 
-      const transaction = await tx.inventoryTransaction.create({
-        data: { productId, type, quantity, previousQty, newQty, reason, userId: session!.user.id },
-        include: { product: { select: { name: true, sku: true } } },
+      if (warehouseStock) {
+        await tx.warehouseStock.update({
+          where: { id: warehouseStock.id },
+          data: { quantity: newQty },
+        });
+      } else {
+        await tx.warehouseStock.create({
+          data: { warehouseId, productId, quantity: newQty },
+        });
+      }
+
+      await tx.product.update({ 
+        where: { id: productId }, 
+        data: { stockQuantity: { increment: diff } } 
       });
 
-      if (newQty <= product.lowStockThreshold) {
+      const transaction = await tx.inventoryTransaction.create({
+        data: { productId, warehouseId, type, quantity, previousQty, newQty, reason, userId: session!.user.id },
+        include: { product: { select: { name: true, sku: true } }, warehouse: { select: { name: true } } },
+      });
+
+      const newGlobalQty = product.stockQuantity + diff;
+      if (newGlobalQty <= product.lowStockThreshold) {
         await tx.notification.create({
           data: {
             title: "Low Stock Alert",
-            message: `${product.name} is running low (${newQty} remaining)`,
+            message: `${product.name} is running low globally (${newGlobalQty} remaining)`,
             type: "LOW_STOCK",
             userId: session!.user.id,
           },

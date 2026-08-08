@@ -34,32 +34,56 @@ export const categorySchema = z.object({
   description: z.string().optional(),
 });
 
+export const brandSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+});
+
+export const warehouseSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  location: z.string().optional(),
+  managerId: z.string().optional().nullable(),
+});
+
 export const supplierSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
   contactPerson: z.string().optional(),
+  tin: z.string().optional(),
+  rating: z.coerce.number().min(0).max(5).optional(),
 });
 
 export const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
   sku: z.string().min(1, "SKU is required"),
   barcode: z.string().optional(),
+  qrCode: z.string().optional(),
   description: z.string().optional(),
   price: z.coerce.number().min(0, "Price must be positive"),
   sellingPrice: z.coerce.number().min(0, "Selling price must be positive"),
+  wholesalePrice: z.coerce.number().min(0).optional(),
+  tax: z.coerce.number().min(0).optional(),
+  discount: z.coerce.number().min(0).optional(),
   stockQuantity: z.coerce.number().int().min(0).default(0),
   lowStockThreshold: z.coerce.number().int().min(0).default(10),
+  maxStock: z.coerce.number().int().min(0).optional(),
+  unit: z.string().optional(),
+  weight: z.coerce.number().min(0).optional(),
+  dimensions: z.string().optional(),
+  videos: z.array(z.string().url()).optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "DISCONTINUED"]).default("ACTIVE"),
   image: z.string().optional(),
   categoryId: z.string().min(1, "Category is required"),
-  supplierId: z.string().optional(),
+  brandId: z.string().optional().nullable(),
+  supplierId: z.string().optional().nullable(),
 });
 
 export const inventoryTransactionSchema = z.object({
   productId: z.string().min(1, "Product is required"),
-  type: z.enum(["STOCK_IN", "STOCK_OUT", "ADJUSTMENT"]),
+  warehouseId: z.string().min(1, "Warehouse is required"),
+  type: z.enum(["STOCK_IN", "STOCK_OUT", "ADJUSTMENT", "DAMAGE", "LOST", "RETURNED", "EXPIRED"]),
   quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
   reason: z.string().optional(),
 });
@@ -88,6 +112,7 @@ export const purchaseOrderSchema = z.object({
 export const saleSchema = z.object({
   customerId: z.string().optional(),
   notes: z.string().optional(),
+  type: z.enum(["INVOICE", "QUOTATION"]).default("INVOICE"),
   discount: z.coerce.number().min(0).default(0),
   items: z.array(z.object({
     productId: z.string().min(1),
@@ -98,7 +123,7 @@ export const saleSchema = z.object({
     method: z.enum(["CASH", "CARD", "BANK_TRANSFER", "MOBILE_MONEY"]),
     amount: z.coerce.number().min(0),
     reference: z.string().optional(),
-  }),
+  }).optional(),
 });
 
 export const settingsSchema = z.object({
@@ -168,6 +193,8 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ProductInput = z.infer<typeof productSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
+export type BrandInput = z.infer<typeof brandSchema>;
+export type WarehouseInput = z.infer<typeof warehouseSchema>;
 export type SupplierInput = z.infer<typeof supplierSchema>;
 export type CustomerInput = z.infer<typeof customerSchema>;
 export type SaleInput = z.infer<typeof saleSchema>;

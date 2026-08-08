@@ -3,14 +3,16 @@ import { Role } from "@/app/generated/prisma";
 export const ROUTE_PERMISSIONS: Record<string, Role[] | "all"> = {
   "/dashboard": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"],
   "/dashboard/products": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"],
+  "/dashboard/brands": ["SUPER_ADMIN", "INVENTORY_MANAGER"],
   "/dashboard/categories": ["SUPER_ADMIN", "INVENTORY_MANAGER"],
+  "/dashboard/warehouses": ["SUPER_ADMIN", "INVENTORY_MANAGER"],
   "/dashboard/suppliers": ["SUPER_ADMIN", "INVENTORY_MANAGER"],
   "/dashboard/inventory": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"],
-  "/dashboard/purchase-orders": ["SUPER_ADMIN", "INVENTORY_MANAGER"],
+  "/dashboard/purchase-orders": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER"],
   "/dashboard/sales": ["SUPER_ADMIN", "STORE_MANAGER", "SALES_MANAGER"],
   "/dashboard/customers": ["SUPER_ADMIN", "STORE_MANAGER", "SALES_MANAGER"],
-  "/dashboard/stock-requests": ["SUPER_ADMIN", "STORE_MANAGER"],
-  "/dashboard/stock-transfers": ["SUPER_ADMIN", "STORE_MANAGER"],
+  "/dashboard/stock-requests": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER"],
+  "/dashboard/stock-transfers": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER"],
   "/dashboard/employees": ["SUPER_ADMIN"],
   "/dashboard/reports": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"],
   "/dashboard/notifications": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"],
@@ -21,7 +23,9 @@ export const ROUTE_PERMISSIONS: Record<string, Role[] | "all"> = {
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", permission: "dashboard" },
   { href: "/dashboard/products", label: "Products", permission: "products" },
+  { href: "/dashboard/brands", label: "Brands", permission: "brands" },
   { href: "/dashboard/categories", label: "Categories", permission: "categories" },
+  { href: "/dashboard/warehouses", label: "Warehouses", permission: "warehouses" },
   { href: "/dashboard/suppliers", label: "Suppliers", permission: "suppliers" },
   { href: "/dashboard/inventory", label: "Inventory", permission: "inventory" },
   { href: "/dashboard/purchase-orders", label: "Purchase Orders", permission: "purchase-orders" },
@@ -51,15 +55,15 @@ export function canAccessNav(role: Role, permission: string): boolean {
   if (role === "SUPER_ADMIN") return true;
   const perms: Record<Role, string[]> = {
     SUPER_ADMIN: ["*"],
-    INVENTORY_MANAGER: ["dashboard", "products", "categories", "suppliers", "inventory", "purchase-orders", "reports", "notifications", "settings"],
-    STORE_MANAGER: ["dashboard", "products", "inventory", "sales", "customers", "reports", "notifications", "settings", "stock-requests", "stock-transfers"],
+    INVENTORY_MANAGER: ["dashboard", "products", "brands", "categories", "warehouses", "suppliers", "inventory", "purchase-orders", "stock-requests", "stock-transfers", "reports", "notifications", "settings"],
+    STORE_MANAGER: ["dashboard", "products", "inventory", "purchase-orders", "sales", "customers", "reports", "notifications", "settings", "stock-requests", "stock-transfers"],
     SALES_MANAGER: ["dashboard", "products", "inventory", "sales", "customers", "reports", "notifications", "settings"],
   };
   return perms[role].includes(permission);
 }
 
 export function canWriteProducts(role: Role): boolean {
-  return ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER"].includes(role);
+  return ["SUPER_ADMIN", "INVENTORY_MANAGER"].includes(role);
 }
 
 export function canWriteInventory(role: Role): boolean {

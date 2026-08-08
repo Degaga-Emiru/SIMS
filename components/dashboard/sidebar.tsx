@@ -20,6 +20,8 @@ import {
   X,
   PackagePlus,
   ArrowLeftRight,
+  Tag,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,9 @@ import type { Role } from "@/app/generated/prisma";
 const ICONS = {
   dashboard: LayoutDashboard,
   products: Package,
+  brands: Tag,
   categories: Tags,
+  warehouses: Building2,
   suppliers: Truck,
   inventory: Warehouse,
   "purchase-orders": ClipboardList,

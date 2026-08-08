@@ -49,7 +49,9 @@ export async function createAuditLog(
   action: string,
   entity: string,
   entityId?: string,
-  details?: Record<string, unknown>
+  details?: Record<string, unknown>,
+  ipAddress?: string,
+  device?: string
 ) {
   const { default: prisma } = await import("@/lib/prisma");
   return prisma.auditLog.create({
@@ -59,6 +61,8 @@ export async function createAuditLog(
       entity,
       entityId,
       details: details ? (details as object) : undefined,
+      ipAddress,
+      device,
     },
   });
 }
