@@ -29,21 +29,20 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
+    // Let NextAuth handle the redirect
     const result = await signIn("credentials", {
       email: data.email,
       password: data.password,
-      redirect: false,
+      redirect: true, // Change to true
+      callbackUrl: "/dashboard", // Specify where to redirect
     });
 
     setIsLoading(false);
 
+    // The code below won't execute if redirect: true works
     if (result?.error) {
       setError("Invalid email or password");
-      return;
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
@@ -92,8 +91,6 @@ export default function LoginPage() {
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Signing in..." : "Sign in"}
         </Button>
-
-
       </form>
     </AuthForm>
   );

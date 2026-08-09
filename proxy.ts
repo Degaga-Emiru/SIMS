@@ -1,7 +1,5 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import { canAccessRoute } from "@/lib/permissions";
-import type { Role } from "@/app/generated/prisma";
 
 const authPages = ["/login", "/register", "/forgot-password", "/reset-password"];
 
@@ -11,16 +9,12 @@ export default withAuth(
     const isAuthenticated = !!token;
     const { pathname } = req.nextUrl;
 
+    // Redirect authenticated users away from auth pages
     if (authPages.some((page) => pathname.startsWith(page)) && isAuthenticated) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
-    if (pathname.startsWith("/dashboard") && token?.role) {
-      if (!canAccessRoute(token.role as Role, pathname)) {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
-      }
-    }
-
+    // Add security headers
     const response = NextResponse.next();
     response.headers.set("X-Frame-Options", "DENY");
     response.headers.set("X-Content-Type-Options", "nosniff");
@@ -30,9 +24,18 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        if (req.nextUrl.pathname.startsWith("/dashboard")) {
+        const { pathname } = req.nextUrl;
+        
+        // Allow access to auth pages without token
+        if (authPages.some((page) => pathname.startsWith(page))) {
+          return true;
+        }
+        
+        // Require token for dashboard
+        if (pathname.startsWith("/dashboard")) {
           return !!token;
         }
+        
         return true;
       },
     },

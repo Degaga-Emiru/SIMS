@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+    allowedDevOrigins: ['10.235.146.169', 'localhost', '127.0.0.1'],
+
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },
@@ -10,6 +12,7 @@ const nextConfig: NextConfig = {
   },
   poweredByHeader: false,
   compress: true,
+  
   async headers() {
     return [
       {
