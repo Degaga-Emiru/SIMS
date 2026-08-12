@@ -72,11 +72,12 @@ export function usePaginatedApi<T>(endpoint: string, params?: Record<string, str
   return { data, loading, page, setPage, totalPages, search, setSearch, refetch: fetchData };
 }
 
-export function useApiData<T>(endpoint: string, options?: { pollingInterval?: number }) {
+export function useApiData<T>(endpoint: string | null, options?: { pollingInterval?: number }) {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(endpoint !== null);
 
   const fetchData = useCallback(async (background = false) => {
+    if (!endpoint) return;
     if (!background) setLoading(true);
     try {
       const res = await api.get<{ data: T }>(endpoint);
@@ -89,6 +90,11 @@ export function useApiData<T>(endpoint: string, options?: { pollingInterval?: nu
   }, [endpoint]);
 
   useEffect(() => {
+    if (!endpoint) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     let active = true;
     const run = async () => {
       setLoading(true);

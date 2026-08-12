@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, FileText, Receipt, ClipboardList, ArrowRight } from "lucide-react";
+import { Plus, FileText, Receipt, ClipboardList, ArrowRight, Printer } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -148,6 +148,14 @@ export default function SalesPage() {
             <Link href={`/dashboard/sales/${r.id}`}>
               <FileText className="h-4 w-4 mr-1" /> View
             </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); window.open(`/api/sales/${r.id}/invoice`, "_blank"); }}
+            title="Print Invoice"
+          >
+            <Printer className="h-3.5 w-3.5" />
           </Button>
           {showConvert && r.type === "QUOTATION" && (
             <Button variant="outline" size="sm" onClick={() => convertToInvoice(r.id)}>

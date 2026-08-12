@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { successResponse, errorResponse } from "@/lib/api-utils";
+import fs from "fs/promises";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: NextRequest) {
   const { error } = await requireAuth();
@@ -13,7 +16,6 @@ export async function POST(request: NextRequest) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64 = `data:${file.type};base64,${buffer.toString("base64")}`;
 
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     if (cloudName && process.env.CLOUDINARY_API_KEY) {
@@ -36,8 +38,19 @@ export async function POST(request: NextRequest) {
       return successResponse({ url: result.secure_url });
     }
 
-    return successResponse({ url: base64 });
+    // Local filesystem storage fallback
+    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    const ext = (file.name && file.name.includes(".")) ? file.name.split(".").pop() : "png";
+    const fileName = `${uuidv4()}.${ext}`;
+    const filePath = path.join(uploadDir, fileName);
+
+    await fs.writeFile(filePath, buffer);
+
+    return successResponse({ url: `/uploads/${fileName}` });
   } catch (e) {
     return errorResponse(e instanceof Error ? e.message : "Upload failed", 500);
   }
 }
+

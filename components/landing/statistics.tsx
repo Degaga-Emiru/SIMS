@@ -2,13 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useApiData } from "@/lib/hooks/use-api";
 
-const stats = [
-  { value: 10000, suffix: "+", label: "Products Managed", prefix: "" },
-  { value: 500, suffix: "+", label: "Active Businesses", prefix: "" },
-  { value: 99.9, suffix: "%", label: "Uptime Guarantee", prefix: "" },
-  { value: 2, suffix: "M+", label: "Orders Processed", prefix: "" },
-];
+interface PublicStats {
+  totalRevenue: number;
+  totalProducts: number;
+  totalCategories: number;
+  totalSuppliers: number;
+  totalSales: number;
+  lowStockCount: number;
+  ordersToday: number;
+}
 
 function useCountUp(end: number, duration: number, isVisible: boolean, decimals = 0) {
   const [count, setCount] = useState(0);
@@ -69,6 +73,14 @@ function StatItem({
 export function Statistics() {
   const sectionRef = useRef<HTMLElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const { data: publicStats } = useApiData<PublicStats>("/public/stats");
+
+  const stats = [
+    { value: publicStats?.totalProducts ?? 10000, suffix: "+", label: "Products Managed", prefix: "" },
+    { value: publicStats?.totalSuppliers ?? 500, suffix: "+", label: "Active Suppliers", prefix: "" },
+    { value: 99.9, suffix: "%", label: "Uptime Guarantee", prefix: "" },
+    { value: publicStats?.totalSales ?? 2000, suffix: "+", label: "Orders Processed", prefix: "" },
+  ];
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -113,3 +125,4 @@ export function Statistics() {
     </section>
   );
 }
+

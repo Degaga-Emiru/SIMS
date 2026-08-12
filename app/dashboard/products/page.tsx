@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Plus, Pencil, Trash2, Upload, QrCode, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, QrCode, Tag, Eye, Package, ImageIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { DataTable } from "@/components/dashboard/data-table";
@@ -92,6 +92,7 @@ export default function ProductsPage() {
   const { data: suppliers } = useApiData<Supplier[]>("/suppliers?limit=100");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const categoryList = categories ?? [];
@@ -192,12 +193,25 @@ export default function ProductsPage() {
       header: "Product",
       render: (r: Product) => (
         <div className="flex items-center gap-3">
-          {r.image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={r.image} alt={r.name} className="h-8 w-8 rounded object-cover" />
-          )}
+          <div
+            onClick={() => setViewingProduct(r)}
+            className="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary/50 shadow-sm transition-all hover:ring-2 hover:ring-primary"
+            title="Click to view product image and details"
+          >
+            {r.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={r.image} alt={r.name} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+            ) : (
+              <Package className="h-5 w-5 text-muted-foreground transition-transform group-hover:scale-110" />
+            )}
+          </div>
           <div>
-            <p className="font-medium">{r.name}</p>
+            <button
+              onClick={() => setViewingProduct(r)}
+              className="font-medium hover:text-primary hover:underline text-left transition-colors"
+            >
+              {r.name}
+            </button>
             <p className="text-xs text-muted-foreground font-mono">{r.sku}</p>
           </div>
         </div>
@@ -256,23 +270,29 @@ export default function ProductsPage() {
         </Badge>
       ),
     },
-    ...(canWrite
-      ? [{
-          key: "actions",
-          header: "Actions",
-          render: (r: Product) => (
-            <div className="flex gap-2">
-              <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
+    {
+      key: "actions",
+      header: "Actions",
+      render: (r: Product) => (
+        <div className="flex gap-2">
+          <Button variant="ghost" size="icon" title="View details and image" onClick={() => setViewingProduct(r)}>
+            <Eye className="h-4 w-4 text-primary" />
+          </Button>
+          {canWrite && (
+            <>
+              <Button variant="ghost" size="icon" title="Edit product" onClick={() => openEdit(r)}>
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)}>
+              <Button variant="ghost" size="icon" title="Delete product" onClick={() => handleDelete(r.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
-            </div>
-          ),
-        }]
-      : []),
+            </>
+          )}
+        </div>
+      ),
+    },
   ];
+
 
   return (
     <div className="space-y-6">
@@ -453,6 +473,124 @@ export default function ProductsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Product Image & Details Viewer Modal */}
+      <Dialog open={!!viewingProduct} onOpenChange={(o) => !o && setViewingProduct(null)}>
+        <DialogContent className="max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Package className="h-5 w-5 text-primary" />
+              Product Details & Image
+            </DialogTitle>
+          </DialogHeader>
+
+          {viewingProduct && (
+            <div className="space-y-6 py-2">
+              {/* Image Preview Box */}
+              <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-border bg-secondary/30 p-6">
+                {viewingProduct.image ? (
+                  <div className="group relative max-h-72 w-full flex items-center justify-center overflow-hidden rounded-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={viewingProduct.image}
+                      alt={viewingProduct.name}
+                      className="max-h-72 w-auto rounded-lg object-contain transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                    <ImageIcon className="h-16 w-16 stroke-1 opacity-50" />
+                    <p className="mt-2 text-sm">No image uploaded for this product</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Basic Info Header */}
+              <div className="flex items-start justify-between border-b pb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-foreground">{viewingProduct.name}</h3>
+                  <p className="text-sm font-mono text-muted-foreground mt-0.5">SKU: {viewingProduct.sku}</p>
+                </div>
+                <Badge variant={viewingProduct.status === "ACTIVE" ? "success" : viewingProduct.status === "DISCONTINUED" ? "destructive" : "secondary"}>
+                  {viewingProduct.status}
+                </Badge>
+              </div>
+
+              {/* Specs Grid */}
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Selling Price</p>
+                  <p className="text-lg font-bold text-primary">{formatCurrency(Number(viewingProduct.sellingPrice))}</p>
+                </div>
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Cost Price</p>
+                  <p className="text-lg font-bold text-foreground">{formatCurrency(Number(viewingProduct.price))}</p>
+                </div>
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Current Stock</p>
+                  <p className={`text-lg font-bold ${
+                    viewingProduct.stockQuantity === 0
+                      ? "text-destructive"
+                      : viewingProduct.stockQuantity <= viewingProduct.lowStockThreshold
+                      ? "text-amber-600"
+                      : "text-foreground"
+                  }`}>
+                    {viewingProduct.stockQuantity} {viewingProduct.unit ?? ""}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Category</p>
+                  <p className="text-sm font-semibold">{viewingProduct.category.name}</p>
+                </div>
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Brand</p>
+                  <p className="text-sm font-semibold">{viewingProduct.brand?.name ?? "—"}</p>
+                </div>
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Supplier</p>
+                  <p className="text-sm font-semibold">{viewingProduct.supplier?.name ?? "—"}</p>
+                </div>
+              </div>
+
+              {/* Barcode & Description */}
+              {(viewingProduct.barcode || viewingProduct.qrCode || viewingProduct.description) && (
+                <div className="space-y-3 rounded-lg border bg-muted/30 p-4 text-sm">
+                  {viewingProduct.barcode && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Barcode:</span>
+                      <span className="font-mono font-medium">{viewingProduct.barcode}</span>
+                    </div>
+                  )}
+                  {viewingProduct.qrCode && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">QR Code Token:</span>
+                      <span className="font-mono font-medium">{viewingProduct.qrCode}</span>
+                    </div>
+                  )}
+                  {viewingProduct.description && (
+                    <div>
+                      <span className="text-muted-foreground block mb-1">Description:</span>
+                      <p className="text-foreground text-xs leading-relaxed">{viewingProduct.description}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            {canWrite && viewingProduct && (
+              <Button variant="outline" onClick={() => { const p = viewingProduct; setViewingProduct(null); openEdit(p); }}>
+                <Pencil className="h-4 w-4 mr-1" /> Edit Product
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setViewingProduct(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
-import { AlertTriangle, ArrowDown, ArrowUp, Settings2 } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, Settings2, Zap } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { DataTable } from "@/components/dashboard/data-table";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,24 @@ export default function InventoryPage() {
     reason: "",
   });
   const [saving, setSaving] = useState(false);
+  const [autoReordering, setAutoReordering] = useState(false);
+
+  async function handleAutoReorder() {
+    setAutoReordering(true);
+    try {
+      const res = await api.post("/inventory/auto-reorder");
+      const { ordersCreated } = res.data.data;
+      if (ordersCreated === 0) {
+        toast("No low-stock products with suppliers found", { icon: "ℹ️" });
+      } else {
+        toast.success(`✅ ${ordersCreated} purchase order${ordersCreated !== 1 ? "s" : ""} created automatically!`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Auto-reorder failed");
+    } finally {
+      setAutoReordering(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -174,11 +192,22 @@ export default function InventoryPage() {
         )}
 
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
               Low Stock Alerts
             </CardTitle>
+            {canWrite && lowStockList.length > 0 && (
+              <Button
+                size="sm"
+                onClick={handleAutoReorder}
+                disabled={autoReordering}
+                className="bg-primary hover:bg-primary/90 text-xs h-7"
+              >
+                <Zap className="h-3.5 w-3.5 mr-1" />
+                {autoReordering ? "Reordering..." : "Auto Reorder"}
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {lowStockList.length === 0 ? (

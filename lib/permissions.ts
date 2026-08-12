@@ -13,6 +13,7 @@ export const ROUTE_PERMISSIONS: Record<string, Role[] | "all"> = {
   "/dashboard/customers": ["SUPER_ADMIN", "STORE_MANAGER", "SALES_MANAGER"],
   "/dashboard/stock-requests": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER"],
   "/dashboard/stock-transfers": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER"],
+  "/dashboard/stock-take": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER"],
   "/dashboard/employees": ["SUPER_ADMIN"],
   "/dashboard/reports": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"],
   "/dashboard/notifications": ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER", "SALES_MANAGER"],
@@ -32,6 +33,7 @@ export const NAV_ITEMS = [
   { href: "/dashboard/sales", label: "Sales", permission: "sales" },
   { href: "/dashboard/stock-requests", label: "Stock Requests", permission: "stock-requests" },
   { href: "/dashboard/stock-transfers", label: "Stock Transfers", permission: "stock-transfers" },
+  { href: "/dashboard/stock-take", label: "Stock Take / Audit", permission: "stock-take" },
   { href: "/dashboard/customers", label: "Customers", permission: "customers" },
   { href: "/dashboard/employees", label: "Employee Management", permission: "employees" },
   { href: "/dashboard/reports", label: "Reports", permission: "reports" },
@@ -55,8 +57,8 @@ export function canAccessNav(role: Role, permission: string): boolean {
   if (role === "SUPER_ADMIN") return true;
   const perms: Record<Role, string[]> = {
     SUPER_ADMIN: ["*"],
-    INVENTORY_MANAGER: ["dashboard", "products", "brands", "categories", "warehouses", "suppliers", "inventory", "purchase-orders", "stock-requests", "stock-transfers", "reports", "notifications", "settings"],
-    STORE_MANAGER: ["dashboard", "products", "inventory", "purchase-orders", "sales", "customers", "reports", "notifications", "settings", "stock-requests", "stock-transfers"],
+    INVENTORY_MANAGER: ["dashboard", "products", "brands", "categories", "warehouses", "suppliers", "inventory", "purchase-orders", "stock-requests", "stock-transfers", "stock-take", "reports", "notifications", "settings"],
+    STORE_MANAGER: ["dashboard", "products", "inventory", "purchase-orders", "sales", "customers", "reports", "notifications", "settings", "stock-requests", "stock-transfers", "stock-take"],
     SALES_MANAGER: ["dashboard", "products", "inventory", "sales", "customers", "reports", "notifications", "settings"],
   };
   return perms[role].includes(permission);

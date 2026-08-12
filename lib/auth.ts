@@ -34,6 +34,13 @@ declare module "next-auth/jwt" {
   }
 }
 
+function sanitizeImage(url?: string | null): string | null {
+  if (!url || url.startsWith("data:") || url.length > 500) {
+    return null;
+  }
+  return url;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -74,7 +81,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
-          image: user.image,
+          image: sanitizeImage(user.image),
           forcePasswordChange: user.forcePasswordChange,
         };
       },
@@ -94,11 +101,11 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.forcePasswordChange = user.forcePasswordChange;
-        token.picture = user.image;
+        token.picture = sanitizeImage(user.image);
       }
       if (trigger === "update" && session) {
         if (session.name) token.name = session.name;
-        if (session.image) token.picture = session.image;
+        if (session.image !== undefined) token.picture = sanitizeImage(session.image);
         if (session.forcePasswordChange !== undefined) {
           token.forcePasswordChange = session.forcePasswordChange;
         }
@@ -111,10 +118,12 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.forcePasswordChange = token.forcePasswordChange;
         if (token.name) session.user.name = token.name;
-        if (token.picture) session.user.image = token.picture;
+        session.user.image = sanitizeImage(token.picture);
       }
       return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
+
+

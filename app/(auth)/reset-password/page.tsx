@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AuthForm } from "@/components/auth/auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validations";
 
@@ -22,11 +23,14 @@ function ResetPasswordForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: { token: defaultToken, password: "", confirmPassword: "" },
   });
+
+  const passwordVal = watch("password");
 
   async function onSubmit(data: ResetPasswordInput) {
     setIsLoading(true);
@@ -75,12 +79,13 @@ function ResetPasswordForm() {
 
         <div className="space-y-2">
           <Label htmlFor="password">New Password</Label>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             placeholder="••••••••"
             autoComplete="new-password"
             disabled={isLoading}
+            showStrength
+            value={passwordVal}
             {...register("password")}
           />
           {errors.password && (
@@ -90,9 +95,8 @@ function ResetPasswordForm() {
 
         <div className="space-y-2">
           <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input
+          <PasswordInput
             id="confirmPassword"
-            type="password"
             placeholder="••••••••"
             autoComplete="new-password"
             disabled={isLoading}
@@ -102,6 +106,7 @@ function ResetPasswordForm() {
             <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
           )}
         </div>
+
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 

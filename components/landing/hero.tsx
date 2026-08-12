@@ -1,8 +1,31 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Play, BarChart3, Boxes, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useApiData } from "@/lib/hooks/use-api";
+import { formatCurrency } from "@/lib/utils";
+
+interface PublicStats {
+  totalRevenue: number;
+  totalProducts: number;
+  totalCategories: number;
+  totalSuppliers: number;
+  totalSales: number;
+  lowStockCount: number;
+  ordersToday: number;
+  chartBars: number[];
+}
 
 export function Hero() {
+  const { data: stats } = useApiData<PublicStats>("/public/stats");
+
+  const revenue = stats?.totalRevenue ?? 124580;
+  const products = stats?.totalProducts ?? 10248;
+  const lowStock = stats?.lowStockCount ?? 12;
+  const ordersToday = stats?.ordersToday ?? 38;
+  const bars = stats?.chartBars && stats.chartBars.length > 0 ? stats.chartBars : [40, 65, 45, 80, 55, 90, 70, 85];
+
   return (
     <section className="relative overflow-hidden pt-8 pb-20 lg:pt-16 lg:pb-28">
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -71,7 +94,7 @@ export function Hero() {
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Dashboard Overview</p>
-                  <p className="text-2xl font-bold text-foreground">$124,580</p>
+                  <p className="text-2xl font-bold text-foreground">{formatCurrency(revenue)}</p>
                 </div>
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                   <BarChart3 className="h-5 w-5 text-primary" />
@@ -79,11 +102,12 @@ export function Hero() {
               </div>
 
               <div className="mb-6 flex h-32 items-end gap-2">
-                {[40, 65, 45, 80, 55, 90, 70, 85].map((height, i) => (
+                {bars.map((height, i) => (
                   <div
                     key={i}
-                    className="flex-1 rounded-t-md bg-gradient-to-t from-primary/80 to-primary/30 transition-all"
+                    className="flex-1 rounded-t-md bg-gradient-to-t from-primary/80 to-primary/30 transition-all duration-500 hover:from-primary hover:to-primary/60"
                     style={{ height: `${height}%` }}
+                    title={`Performance Bar ${i + 1}: ${height}%`}
                   />
                 ))}
               </div>
@@ -92,24 +116,24 @@ export function Hero() {
                 <div className="rounded-xl border border-border bg-secondary/50 p-4">
                   <Boxes className="mb-2 h-5 w-5 text-primary" />
                   <p className="text-xs text-muted-foreground">Total Products</p>
-                  <p className="text-lg font-bold">10,248</p>
+                  <p className="text-lg font-bold">{products.toLocaleString()}</p>
                 </div>
                 <div className="rounded-xl border border-border bg-secondary/50 p-4">
                   <TrendingUp className="mb-2 h-5 w-5 text-primary" />
-                  <p className="text-xs text-muted-foreground">Growth Rate</p>
-                  <p className="text-lg font-bold text-primary">+24.5%</p>
+                  <p className="text-xs text-muted-foreground">System Status</p>
+                  <p className="text-lg font-bold text-primary">Live Data</p>
                 </div>
               </div>
             </div>
 
             <div className="absolute -top-4 -right-4 rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
               <p className="text-xs text-muted-foreground">Low Stock Alert</p>
-              <p className="text-sm font-semibold text-destructive">12 items need reorder</p>
+              <p className="text-sm font-semibold text-destructive">{lowStock} items need reorder</p>
             </div>
 
             <div className="absolute -bottom-4 -left-4 rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
               <p className="text-xs text-muted-foreground">Orders Today</p>
-              <p className="text-sm font-semibold text-primary">+38 processed</p>
+              <p className="text-sm font-semibold text-primary">+{ordersToday} processed</p>
             </div>
           </div>
         </div>
@@ -117,3 +141,4 @@ export function Hero() {
     </section>
   );
 }
+

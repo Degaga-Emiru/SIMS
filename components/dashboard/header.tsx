@@ -17,6 +17,7 @@ import {
 import { ROLE_LABELS } from "@/types";
 import Link from "next/link";
 import { useApiData } from "@/lib/hooks/use-api";
+import { GlobalSearch } from "@/components/dashboard/global-search";
 
 interface NotificationSummary {
   id: string;
@@ -53,7 +54,11 @@ export function Header({ onMenuClick }: HeaderProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="flex-1" />
+      {/* Global Search */}
+      <div className="flex-1 flex items-center">
+        <GlobalSearch />
+      </div>
+
 
       <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
         <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

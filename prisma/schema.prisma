@@ -39,6 +39,21 @@ enum TransactionType {
   LOST
   RETURNED
   EXPIRED
+  TRANSFER_OUT
+  TRANSFER_IN
+}
+
+enum StockTransferStatus {
+  PENDING
+  DISPATCHED
+  RECEIVED
+  CANCELLED
+}
+
+enum StockTakeStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 enum PurchaseOrderStatus {
@@ -116,6 +131,10 @@ model User {
   purchaseRequests      PurchaseOrder[]        @relation("PurchaseRequestedBy")
   purchaseApprovals     PurchaseOrder[]        @relation("PurchaseApprovedBy")
   managedWarehouses     Warehouse[]            @relation("WarehouseManager")
+  requestedTransfers    StockTransfer[]        @relation("TransferRequestedBy")
+  dispatchedTransfers   StockTransfer[]        @relation("TransferDispatchedBy")
+  receivedTransfers     StockTransfer[]        @relation("TransferReceivedBy")
+  stockTakes            StockTake[]
 }
 
 model PasswordResetToken {
@@ -155,6 +174,9 @@ model Warehouse {
   updatedAt   DateTime         @updatedAt
   stocks                WarehouseStock[]
   inventoryTransactions InventoryTransaction[]
+  outboundTransfers     StockTransfer[]        @relation("FromWarehouse")
+  inboundTransfers      StockTransfer[]        @relation("ToWarehouse")
+  stockTakes            StockTake[]
 }
 
 model WarehouseStock {
@@ -221,22 +243,29 @@ model Product {
   purchaseOrderItems    PurchaseOrderItem[]
   saleItems             SaleItem[]
   warehouseStocks       WarehouseStock[]
+  stockTransfers        StockTransfer[]
+  stockTakeItems        StockTakeItem[]
 }
 
 model InventoryTransaction {
-  id          String          @id @default(cuid())
-  type        TransactionType
-  quantity    Int
-  previousQty Int
-  newQty      Int
-  reason      String?
-  productId   String
-  product     Product         @relation(fields: [productId], references: [id])
-  warehouseId String?
-  warehouse   Warehouse?      @relation(fields: [warehouseId], references: [id])
-  userId      String
-  user        User            @relation(fields: [userId], references: [id])
-  createdAt   DateTime        @default(now())
+  id            String          @id @default(cuid())
+  type          TransactionType
+  quantity      Int
+  previousQty   Int
+  newQty        Int
+  reason        String?
+  batchNumber   String?
+  lotNumber     String?
+  expiryDate    DateTime?
+  transferId    String?
+  stockTransfer StockTransfer?  @relation(fields: [transferId], references: [id])
+  productId     String
+  product       Product         @relation(fields: [productId], references: [id])
+  warehouseId   String?
+  warehouse     Warehouse?      @relation(fields: [warehouseId], references: [id])
+  userId        String
+  user          User            @relation(fields: [userId], references: [id])
+  createdAt     DateTime        @default(now())
 }
 
 model AuditLog {
@@ -374,4 +403,62 @@ model CompanySettings {
   theme           String   @default("light")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model StockTransfer {
+  id              String              @id @default(cuid())
+  transferNumber  String              @unique
+  status          StockTransferStatus @default(PENDING)
+  productId       String
+  product         Product             @relation(fields: [productId], references: [id])
+  fromWarehouseId String
+  fromWarehouse   Warehouse           @relation("FromWarehouse", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String
+  toWarehouse     Warehouse           @relation("ToWarehouse", fields: [toWarehouseId], references: [id])
+  quantity        Int
+  notes           String?
+  requestedById   String
+  requestedBy     User                @relation("TransferRequestedBy", fields: [requestedById], references: [id])
+  dispatchedById  String?
+  dispatchedBy    User?               @relation("TransferDispatchedBy", fields: [dispatchedById], references: [id])
+  receivedById    String?
+  receivedBy      User?               @relation("TransferReceivedBy", fields: [receivedById], references: [id])
+  requestedAt     DateTime            @default(now())
+  dispatchedAt    DateTime?
+  receivedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  transactions    InventoryTransaction[]
+}
+
+model StockTake {
+  id          String        @id @default(cuid())
+  reference   String        @unique
+  status      StockTakeStatus @default(IN_PROGRESS)
+  warehouseId String
+  warehouse   Warehouse     @relation(fields: [warehouseId], references: [id])
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  notes       String?
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  items       StockTakeItem[]
+}
+
+model StockTakeItem {
+  id            String    @id @default(cuid())
+  stockTakeId   String
+  stockTake     StockTake @relation(fields: [stockTakeId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id])
+  expectedQty   Int
+  countedQty    Int       @default(0)
+  variance      Int       @default(0)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }

@@ -22,6 +22,7 @@ import {
   ArrowLeftRight,
   Tag,
   Building2,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const ICONS = {
   settings: Settings,
   "stock-requests": PackagePlus,
   "stock-transfers": ArrowLeftRight,
+  "stock-take": ClipboardCheck,
 };
 
 interface SidebarProps {

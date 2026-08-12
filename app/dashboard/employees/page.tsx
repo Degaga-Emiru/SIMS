@@ -24,7 +24,9 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { DataTable } from "@/components/dashboard/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -317,11 +319,11 @@ export default function EmployeesPage() {
             </div>
             <div className="space-y-2">
               <Label>Password</Label>
-              <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              <PasswordInput value={form.password} showStrength onChange={(e) => setForm({ ...form, password: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>Confirm Password</Label>
-              <Input type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
+              <PasswordInput value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>Status</Label>

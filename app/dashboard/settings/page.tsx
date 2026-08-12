@@ -8,7 +8,9 @@ import toast from "react-hot-toast";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -280,17 +282,17 @@ export default function SettingsPage() {
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
                       <Label>Current Password</Label>
-                      <Input type="password" value={profileForm.currentPassword}
+                      <PasswordInput value={profileForm.currentPassword}
                         onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                       <Label>New Password</Label>
-                      <Input type="password" value={profileForm.newPassword}
+                      <PasswordInput value={profileForm.newPassword} showStrength
                         onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                       <Label>Confirm Password</Label>
-                      <Input type="password" value={profileForm.confirmPassword}
+                      <PasswordInput value={profileForm.confirmPassword}
                         onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })} />
                     </div>
                   </div>
