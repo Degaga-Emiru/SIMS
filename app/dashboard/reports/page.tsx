@@ -13,14 +13,19 @@ import { exportToCSV, exportToExcel, exportToPDF } from "@/lib/export";
 import api from "@/lib/api";
 import type { Role } from "@/app/generated/prisma/enums";
 
+import { useSearchParams } from "next/navigation";
+
 type ReportRow = Record<string, unknown>;
 
 export default function ReportsPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const role = session?.user?.role as Role | undefined;
   const isSalesManager = role === "SALES_MANAGER";
 
-  const [activeTab, setActiveTab] = useState(isSalesManager ? "sales" : "inventory");
+  const defaultTab = tabParam || (isSalesManager ? "sales" : "inventory");
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [data, setData] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [columns, setColumns] = useState<{ key: string; header: string }[]>([]);
@@ -30,8 +35,37 @@ export default function ReportsPage() {
     setLoading(true);
     setActiveTab(type);
     try {
-      const res = await api.get(`/reports/${type}`);
-      const report = type === "sales" ? res.data.data.report : res.data.data;
+      const apiEndpoint =
+        type === "product" || type === "category" || type === "customer" || type === "sales"
+          ? "/reports/sales"
+          : type === "purchases"
+          ? "/reports/purchases"
+          : type === "suppliers"
+          ? "/reports/suppliers"
+          : "/reports/inventory";
+
+      const res = await api.get(apiEndpoint);
+      let report: ReportRow[] = [];
+
+      if (apiEndpoint === "/reports/sales") {
+        const raw = res.data.data.report || res.data.data;
+        if (type === "product") {
+          report = res.data.data.topProducts?.map((p: Record<string, unknown>) => ({
+            Product: p.name ?? p.productId,
+            "Units Sold": p.quantity ?? p.value,
+          })) ?? raw;
+        } else if (type === "category") {
+          report = res.data.data.salesByCategory?.map((c: Record<string, unknown>) => ({
+            Category: c.name,
+            "Total Sales": c.value,
+          })) ?? raw;
+        } else {
+          report = raw;
+        }
+      } else {
+        report = Array.isArray(res.data.data) ? res.data.data : [];
+      }
+
       setData(report);
 
       if (report.length > 0) {
@@ -53,8 +87,8 @@ export default function ReportsPage() {
   }
 
   useEffect(() => {
-    loadReport(isSalesManager ? "sales" : "inventory");
-  }, [isSalesManager]);
+    loadReport(defaultTab);
+  }, [defaultTab]);
 
   function handleExport(format: "csv" | "excel" | "pdf") {
     if (!data.length) return toast.error("No data to export");
@@ -62,15 +96,15 @@ export default function ReportsPage() {
     const filename = `sims-${activeTab}-report`;
     if (format === "csv") exportToCSV(data, exportCols, filename);
     else if (format === "excel") exportToExcel(data, exportCols, filename);
-    else exportToPDF(data, exportCols, filename, `${activeTab} Report`);
+    else exportToPDF(data, exportCols, filename, `${activeTab.toUpperCase()} Report`);
     toast.success(`Exported as ${format.toUpperCase()}`);
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Reports"
-        description={isSalesManager ? "Your personal sales reports" : "Generate and export business reports"}
+        title="Reports & Analytics"
+        description={isSalesManager ? "Your personal sales, product, and customer analytics reports" : "Generate and export business, inventory, and purchasing reports"}
         action={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => handleExport("csv")}>
@@ -87,22 +121,27 @@ export default function ReportsPage() {
       />
 
       <Tabs value={activeTab} onValueChange={loadReport}>
-        <TabsList>
+        <TabsList className="flex flex-wrap h-auto p-1">
+          <TabsTrigger value="sales">Sales Overview</TabsTrigger>
+          <TabsTrigger value="product">Product Performance</TabsTrigger>
+          <TabsTrigger value="category">Category Performance</TabsTrigger>
+          <TabsTrigger value="customer">Customer Sales</TabsTrigger>
           {!isSalesManager && (
             <>
-              <TabsTrigger value="inventory">Inventory</TabsTrigger>
+              <TabsTrigger value="inventory">Inventory Stock</TabsTrigger>
               <TabsTrigger value="purchases">Purchases</TabsTrigger>
               <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+              <TabsTrigger value="fast-moving font-normal">Fast Moving</TabsTrigger>
+              <TabsTrigger value="valuation">Valuation</TabsTrigger>
             </>
           )}
-          <TabsTrigger value="sales">My Sales</TabsTrigger>
         </TabsList>
         <TabsContent value={activeTab} className="mt-4">
           <DataTable
             columns={columns.map((c) => ({ ...c, render: undefined }))}
             data={data.map((row, i) => ({ ...row, id: String(i) }))}
             loading={loading}
-            emptyMessage="No report data available"
+            emptyMessage="No report data available for this selection"
             onRowClick={(row) => setSelectedReport(row)}
           />
         </TabsContent>

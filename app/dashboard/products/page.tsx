@@ -95,6 +95,7 @@ export default function ProductsPage() {
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const categoryList = categories ?? [];
   const brandList = brands ?? [];
   const supplierList = suppliers ?? [];
@@ -308,12 +309,33 @@ export default function ProductsPage() {
         }
       />
 
-      <Input
-        placeholder="Search by name, SKU, or barcode..."
-        value={search}
-        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        className="max-w-sm"
-      />
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <Input
+          placeholder="Search by name, SKU, or barcode..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          className="max-w-sm"
+        />
+
+        <div className="flex items-center gap-2 border rounded-lg p-1 bg-muted/30">
+          <Button
+            variant={viewMode === "grid" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("grid")}
+            className="text-xs"
+          >
+            Grid Catalog
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("table")}
+            className="text-xs"
+          >
+            Table View
+          </Button>
+        </div>
+      </div>
 
       <Tabs defaultValue="all">
         <TabsList>
@@ -323,13 +345,57 @@ export default function ProductsPage() {
           </TabsTrigger>
           <TabsTrigger value="out">Out of Stock ({outOfStock.length})</TabsTrigger>
         </TabsList>
-        <TabsContent value="all">
-          <DataTable columns={tableColumns} data={data} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
+        <TabsContent value="all" className="mt-4">
+          {viewMode === "grid" ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 max-h-[75vh] overflow-y-auto pr-1">
+              {data.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => setViewingProduct(p)}
+                  className="group relative flex flex-col justify-between rounded-xl border bg-card p-4 shadow-sm transition-all hover:border-primary hover:shadow-md cursor-pointer"
+                >
+                  <div className="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border bg-secondary/30 mb-3">
+                    {p.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.image} alt={p.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                    ) : (
+                      <Package className="h-12 w-12 text-muted-foreground opacity-50 transition-transform group-hover:scale-110" />
+                    )}
+                    <Badge
+                      variant={p.status === "ACTIVE" ? "success" : "secondary"}
+                      className="absolute top-2 right-2 text-[10px]"
+                    >
+                      {p.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm line-clamp-1 group-hover:text-primary transition-colors">{p.name}</h4>
+                    <p className="text-xs font-mono text-muted-foreground mt-0.5">SKU: {p.sku}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{p.category.name}</p>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between border-t pt-3">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Price</p>
+                      <p className="text-base font-bold text-primary">{formatCurrency(Number(p.sellingPrice))}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-medium text-muted-foreground">Stock</p>
+                      <p className={`text-sm font-bold ${p.stockQuantity === 0 ? "text-destructive" : p.stockQuantity <= p.lowStockThreshold ? "text-amber-600" : "text-foreground"}`}>
+                        {p.stockQuantity} {p.unit ?? ""}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <DataTable columns={tableColumns} data={data} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
+          )}
         </TabsContent>
-        <TabsContent value="low">
+        <TabsContent value="low" className="mt-4">
           <DataTable columns={tableColumns} data={lowStock} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} emptyMessage="No low stock products" />
         </TabsContent>
-        <TabsContent value="out">
+        <TabsContent value="out" className="mt-4">
           <DataTable columns={tableColumns} data={outOfStock} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} emptyMessage="All products are in stock" />
         </TabsContent>
       </Tabs>

@@ -9,9 +9,32 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (error) return error;
 
   const { id } = await params;
-  const customer = await prisma.customer.findUnique({ where: { id } });
+  const customer = await prisma.customer.findUnique({
+    where: { id },
+    include: {
+      sales: {
+        orderBy: { createdAt: "desc" },
+        include: { items: { include: { product: true } } },
+      },
+    },
+  });
+
   if (!customer) return errorResponse("Customer not found", 404);
-  return successResponse(customer);
+
+  const completedSales = customer.sales.filter((s) => s.status === "COMPLETED");
+  const totalSpent = completedSales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+  const totalOrders = customer.sales.length;
+  const completedOrders = completedSales.length;
+  const averageOrderValue = completedOrders > 0 ? totalSpent / completedOrders : 0;
+
+  return successResponse({
+    customer,
+    totalSpent,
+    totalOrders,
+    completedOrders,
+    averageOrderValue,
+    sales: customer.sales,
+  });
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
