@@ -151,7 +151,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export function StoreManagerDashboard() {
-  const { data, loading } = useApiData<StoreManagerDashboardData>("/dashboard/store-manager", { pollingInterval: 5000 });
+  const { data, loading } = useApiData<StoreManagerDashboardData>("/dashboard/store-manager");
 
   if (loading) return <DashboardLoading />;
 

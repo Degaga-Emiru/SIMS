@@ -18,7 +18,8 @@ export function usePaginatedApi<T>(endpoint: string, params?: Record<string, str
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const paramsKey = JSON.stringify(params ?? {});
-  const stableParams = useMemo(() => params ?? {}, [paramsKey, params]);
+  // eslint-disable-next-deps
+  const stableParams = useMemo(() => params ?? {}, [paramsKey]);
 
   const fetchData = useCallback(async (background = false) => {
     if (!background) setLoading(true);

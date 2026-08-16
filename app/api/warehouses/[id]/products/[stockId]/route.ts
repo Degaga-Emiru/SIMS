@@ -20,7 +20,7 @@ export async function PUT(
   if (error) return error;
 
   const role = session!.user.role;
-  if (!["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER"].includes(role)) {
+  if (!["SUPER_ADMIN", "INVENTORY_MANAGER"].includes(role)) {
     return errorResponse("Forbidden", 403);
   }
 

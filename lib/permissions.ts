@@ -97,7 +97,7 @@ export function canWriteProducts(role: Role): boolean {
 }
 
 export function canWriteInventory(role: Role): boolean {
-  return ["SUPER_ADMIN", "INVENTORY_MANAGER", "STORE_MANAGER"].includes(role);
+  return ["SUPER_ADMIN", "INVENTORY_MANAGER"].includes(role);
 }
 
 export function canManageCompanySettings(role: Role): boolean {

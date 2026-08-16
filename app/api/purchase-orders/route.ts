@@ -48,7 +48,24 @@ export async function POST(request: NextRequest) {
   const { data, error: validationError } = await validateBody(request, purchaseOrderSchema);
   if (validationError) return validationError;
 
-  const totalAmount = data!.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const MAX_DECIMAL = 99999999.99;
+  const itemsData = data!.items.map((item) => {
+    const unitPrice = Math.round(item.unitPrice * 100) / 100;
+    const totalPrice = Math.round(item.quantity * unitPrice * 100) / 100;
+    return {
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice,
+      totalPrice,
+    };
+  });
+
+  const rawTotalAmount = itemsData.reduce((sum, item) => sum + item.totalPrice, 0);
+  const totalAmount = Math.round(rawTotalAmount * 100) / 100;
+
+  if (totalAmount > MAX_DECIMAL || itemsData.some((i) => i.unitPrice > MAX_DECIMAL || i.totalPrice > MAX_DECIMAL)) {
+    return errorResponse("Total amount or item price exceeds maximum supported limit (99,999,999.99)", 400);
+  }
 
   // Store managers submit as REQUESTED; inventory/admin create directly as PENDING
   const initialStatus = role === "STORE_MANAGER" ? "REQUESTED" : "PENDING";
@@ -64,12 +81,7 @@ export async function POST(request: NextRequest) {
         userId: session!.user.id,
         requestedById: role === "STORE_MANAGER" ? session!.user.id : undefined,
         items: {
-          create: data!.items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.quantity * item.unitPrice,
-          })),
+          create: itemsData,
         },
       },
       include: { supplier: true, items: { include: { product: true } } },

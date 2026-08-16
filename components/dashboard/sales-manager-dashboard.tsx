@@ -79,7 +79,7 @@ interface SMData {
 const COLORS = ["#2563eb", "#16a34a", "#d97706", "#9333ea", "#06b6d4", "#ec4899"];
 
 export function SalesManagerDashboard() {
-  const { data, loading } = useApiData<SMData>("/dashboard/sales-manager", { pollingInterval: 5000 });
+  const { data, loading } = useApiData<SMData>("/dashboard/sales-manager");
   const [timeRange, setTimeRange] = useState<"today" | "7days" | "30days" | "month" | "all">("month");
 
   if (loading) return <p className="text-muted-foreground p-4">Loading sales performance analytics...</p>;

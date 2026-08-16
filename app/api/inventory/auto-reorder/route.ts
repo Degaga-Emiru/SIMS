@@ -56,20 +56,29 @@ export async function POST(_request: NextRequest) {
       offset++;
       const orderNumber = `PO-AUTO-${String(poCount + offset).padStart(5, "0")}`;
 
+      const MAX_DECIMAL = 99999999.99;
+
       const items = products.map((p) => {
-        const reorderQty = Math.max(
+        const rawQty = Math.max(
           (p.maxStock ?? p.lowStockThreshold * 3) - p.stockQuantity,
           p.lowStockThreshold
         );
+        const quantity = Math.min(Math.max(1, Math.floor(rawQty)), 100000);
+        const rawUnitPrice = Number(p.price) || 0;
+        const unitPrice = Math.min(Math.max(0, Math.round(rawUnitPrice * 100) / 100), MAX_DECIMAL);
+        const rawTotalPrice = Math.round(quantity * unitPrice * 100) / 100;
+        const totalPrice = Math.min(rawTotalPrice, MAX_DECIMAL);
+
         return {
           productId: p.id,
-          quantity: reorderQty,
-          unitPrice: Number(p.price),
-          totalPrice: reorderQty * Number(p.price),
+          quantity,
+          unitPrice,
+          totalPrice,
         };
       });
 
-      const totalAmount = items.reduce((sum, i) => sum + i.totalPrice, 0);
+      const rawTotalAmount = items.reduce((sum, i) => sum + i.totalPrice, 0);
+      const totalAmount = Math.min(Math.round(rawTotalAmount * 100) / 100, MAX_DECIMAL);
 
       await prisma.purchaseOrder.create({
         data: {
