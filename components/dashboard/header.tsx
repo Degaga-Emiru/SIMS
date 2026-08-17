@@ -31,7 +31,7 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
-  const { data: notifications } = useApiData<NotificationSummary[]>("/notifications");
+  const { data: countData } = useApiData<{ count: number }>("/notifications/unread-count", { pollingInterval: 60000 });
 
   const initials = session?.user?.name
     ?.split(" ")
@@ -41,12 +41,11 @@ export function Header({ onMenuClick }: HeaderProps) {
     .slice(0, 2);
 
   const unreadCount = useMemo(() => {
-    const items = notifications ?? [];
-    const unread = items.filter((item) => !item.read).length;
+    const unread = countData?.count ?? 0;
     if (unread <= 0) return null;
     if (unread >= 10) return "9+";
     return `${unread}`;
-  }, [notifications]);
+  }, [countData]);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 lg:px-6">

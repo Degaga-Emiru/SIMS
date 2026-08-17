@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
 import api from "@/lib/api";
 
 interface PaginatedResult<T> {
@@ -11,120 +12,64 @@ interface PaginatedResult<T> {
   totalPages: number;
 }
 
-export function usePaginatedApi<T>(endpoint: string, params?: Record<string, string | number>, options?: { pollingInterval?: number }) {
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
+export function usePaginatedApi<T>(
+  endpoint: string,
+  params?: Record<string, string | number>,
+  options?: { pollingInterval?: number }
+) {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
+
   const paramsKey = JSON.stringify(params ?? {});
   // eslint-disable-next-deps
   const stableParams = useMemo(() => params ?? {}, [paramsKey]);
 
-  const fetchData = useCallback(async (background = false) => {
-    if (!background) setLoading(true);
-    try {
+  const queryKey = [endpoint, page, search, stableParams];
+
+  const { data: result, isLoading, refetch } = useQuery({
+    queryKey,
+    queryFn: async () => {
       const res = await api.get<PaginatedResult<T>>(endpoint, {
         params: { page, limit: 10, search, ...stableParams },
       });
-      setData(res.data.data);
-      setTotalPages(res.data.totalPages);
-    } catch {
-      setData([]);
-    } finally {
-      if (!background) setLoading(false);
-    }
-  }, [endpoint, page, search, stableParams]);
+      return res.data;
+    },
+    refetchInterval: options?.pollingInterval,
+  });
 
-  useEffect(() => {
-    let active = true;
-    const run = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get<PaginatedResult<T>>(endpoint, {
-          params: { page, limit: 10, search, ...stableParams },
-        });
-        if (!active) return;
-        setData(res.data.data);
-        setTotalPages(res.data.totalPages);
-      } catch {
-        if (!active) return;
-        setData([]);
-      } finally {
-        if (!active) return;
-        setLoading(false);
-      }
-    };
-
-    run();
-    let interval: NodeJS.Timeout;
-    if (options?.pollingInterval) {
-      interval = setInterval(() => {
-        if (active) fetchData(true);
-      }, options.pollingInterval);
-    }
-
-    return () => {
-      active = false;
-      if (interval) clearInterval(interval);
-    };
-  }, [endpoint, page, search, stableParams, fetchData, options?.pollingInterval]);
-
-  return { data, loading, page, setPage, totalPages, search, setSearch, refetch: fetchData };
+  return {
+    data: result?.data ?? [],
+    loading: isLoading,
+    page,
+    setPage,
+    totalPages: result?.totalPages ?? 1,
+    search,
+    setSearch,
+    refetch: useCallback(() => refetch(), [refetch]),
+  };
 }
 
-export function useApiData<T>(endpoint: string | null, options?: { pollingInterval?: number }) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(endpoint !== null);
+export function useApiData<T>(
+  endpoint: string | null,
+  options?: { pollingInterval?: number }
+) {
+  const queryClient = useQueryClient();
 
-  const fetchData = useCallback(async (background = false) => {
-    if (!endpoint) return;
-    if (!background) setLoading(true);
-    try {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: [endpoint],
+    queryFn: async () => {
+      if (!endpoint) return null;
       const res = await api.get<{ data: T }>(endpoint);
-      setData(res.data.data);
-    } catch {
-      setData(null);
-    } finally {
-      if (!background) setLoading(false);
-    }
-  }, [endpoint]);
+      return res.data.data;
+    },
+    enabled: !!endpoint,
+    refetchInterval: options?.pollingInterval,
+  });
 
-  useEffect(() => {
-    if (!endpoint) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-    let active = true;
-    const run = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get<{ data: T }>(endpoint);
-        if (!active) return;
-        setData(res.data.data);
-      } catch {
-        if (!active) return;
-        setData(null);
-      } finally {
-        if (!active) return;
-        setLoading(false);
-      }
-    };
-
-    run();
-    let interval: NodeJS.Timeout;
-    if (options?.pollingInterval) {
-      interval = setInterval(() => {
-        if (active) fetchData(true);
-      }, options.pollingInterval);
-    }
-
-    return () => {
-      active = false;
-      if (interval) clearInterval(interval);
-    };
-  }, [endpoint, fetchData, options?.pollingInterval]);
-
-  return { data, loading, refetch: fetchData };
+  return {
+    data: data ?? null,
+    loading: isLoading,
+    refetch: useCallback(() => refetch(), [refetch]),
+  };
 }
